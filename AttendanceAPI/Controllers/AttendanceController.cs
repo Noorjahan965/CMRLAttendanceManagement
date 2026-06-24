@@ -1,9 +1,12 @@
 using AttendanceAPI.DTOs;
 using AttendanceAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AttendanceAPI.Controllers;
-
+[EnableRateLimiting("global")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AttendanceController : ControllerBase
@@ -114,7 +117,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("hr/history")]
     public async Task<ActionResult>
         GetAttendanceHistory()
@@ -128,7 +132,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpPut("hr/attendance-status")]
     public async Task<IActionResult>
         UpdateAttendanceStatus(
@@ -149,7 +154,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("low-attendance")]
     public async Task<IActionResult>
         GetLowAttendanceEmployees(
@@ -166,7 +172,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("hr/attendance-summary")]
     public async Task<IActionResult>
         GetAttendanceSummary(
