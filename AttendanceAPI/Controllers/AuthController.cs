@@ -144,7 +144,7 @@ public class AuthController : ControllerBase
     }
 
     private string GenerateToken(string username, string role)
-    {
+    {  
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, username),

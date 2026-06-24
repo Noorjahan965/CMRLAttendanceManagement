@@ -1,9 +1,12 @@
 using AttendanceAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using AttendanceAPI.DTOs;
-
+using Microsoft.AspNetCore.RateLimiting;
 namespace AttendanceAPI.Controllers;
+using Microsoft.AspNetCore.Authorization;
 
+[EnableRateLimiting("global")]
+[Authorize(Roles = "HR")]
 [ApiController]
 [Route("api/[controller]")]
 public class EmployeeController : ControllerBase
