@@ -27,4 +27,10 @@ public class UserLogin
 
     [Column("last_login")]
     public DateTime? LastLogin { get; set; }
+
+    [Column("refresh_token")]
+    public string? RefreshToken { get; set; }
+
+    [Column("refresh_token_expiry")]
+    public DateTime? RefreshTokenExpiry { get; set; }
 }

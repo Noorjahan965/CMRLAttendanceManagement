@@ -28,7 +28,8 @@ public class EmployeeCreateRequestDto
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Mobile number must be exactly 10 digits")]
     public string? MobileNo { get; set; }
 
-    [EmailAddress(ErrorMessage = "Invalid email format")]
+    [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+        ErrorMessage = "Invalid email format")]
     [MaxLength(100)]
     public string? Email { get; set; }
 
