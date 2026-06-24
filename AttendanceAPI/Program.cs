@@ -13,8 +13,8 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:5214");
 builder.Services.AddControllers();
-builder.Services.AddControllers();
 builder.Services.AddDataProtection();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseMySql(
@@ -43,7 +43,6 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddRateLimiter(options =>
 {
-    // Login endpoint: 5 attempts per minute per IP
     options.AddFixedWindowLimiter("login", o =>
     {
         o.PermitLimit = 5;
@@ -52,7 +51,6 @@ builder.Services.AddRateLimiter(options =>
         o.QueueLimit = 0;
     });
 
-    // Global: 100 requests per minute per IP
     options.AddFixedWindowLimiter("global", o =>
     {
         o.PermitLimit = 100;
@@ -79,6 +77,16 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'");
+    await next();
+});
 
 app.UseRateLimiter();
 app.UseAuthentication();
