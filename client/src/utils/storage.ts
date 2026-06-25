@@ -1,19 +1,20 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Keychain from "react-native-keychain";
 
 export const saveUser = async (user: any) => {
-	await AsyncStorage.setItem(
+	await Keychain.setGenericPassword(
 		"user",
 		JSON.stringify(user)
 	);
 };
 
 export const getUser = async () => {
-	const user =
-		await AsyncStorage.getItem("user");
+	const credentials = await Keychain.getGenericPassword();
 
-	return user ? JSON.parse(user) : null;
+	if (!credentials) return null;
+
+	return JSON.parse(credentials.password);
 };
 
 export const logoutUser = async () => {
-	await AsyncStorage.removeItem("user");
+	await Keychain.resetGenericPassword();
 };

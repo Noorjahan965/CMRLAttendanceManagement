@@ -37,4 +37,7 @@ public interface IAttendanceRepository
     GetAttendanceHistoryAsync(
         int year,
         int month);
+        Task<List<HrTeamAttendanceStatusDto>> GetTeamAttendanceStatusAsync(string hrUsername);
+Task<EmployeeMaster?> GetEmployeeWithShiftByUsernameAsync(string username);
+Task<int?> GetHrRoleIdByUsernameAsync(string username);
 }

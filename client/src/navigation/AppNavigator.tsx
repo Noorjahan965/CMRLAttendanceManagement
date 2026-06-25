@@ -5,6 +5,9 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import EmployeesScreen from "../screens/HR/EmployeesScreen";
+import LowAttendanceScreen from "../screens/HR/LowAttendanceScreen";
+import AttendanceDetailScreen from "../screens/HR/AttendanceDetailScreen"; 
 
 const Stack = createNativeStackNavigator();
 
@@ -13,18 +16,27 @@ export default function AppNavigator() {
         <NavigationContainer>
             <Stack.Navigator initialRouteName="Login">
                 <Stack.Screen name="Login"
-                component={LoginScreen}
-                options= {{ headerShown: false}} />
+                    component={LoginScreen}
+                    options={{ headerShown: false }} />
                 <Stack.Screen name="Home"
-                component={HomeScreen}
-                options= {{ headerShown: false}} />
+                    component={HomeScreen}
+                    options={{ headerShown: false }} />
                 <Stack.Screen name="Attendance"
-                component={AttendanceScreen}
-                options= {{ headerShown: false}} />
+                    component={AttendanceScreen}
+                    options={{ headerShown: true }} />
                 <Stack.Screen name="History"
-                component={HistoryScreen}
-                options= {{ headerShown: false}} />
+                    component={HistoryScreen}
+                    options={{ headerShown: true }} />
+                <Stack.Screen name="EmployeeManagement"
+                    component={EmployeesScreen}
+                    options={{ headerShown: true }} />
+                <Stack.Screen name="LowAttendance"
+                    component={LowAttendanceScreen}
+                    options={{ headerShown: true, title: "Low Attendance" }} />
+                <Stack.Screen name="AttendanceDetail"
+                    component={AttendanceDetailScreen}
+                    options={{ headerShown: true, title: "Attendance Detail" }} />
             </Stack.Navigator>
         </NavigationContainer>
-    )
+    );
 }

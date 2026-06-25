@@ -2,22 +2,23 @@ import axios from "axios";
 import { BASE_URL } from "../constants/api";
 
 export const loginUser = async (
-  username: string,
-  password: string
+	username: string,
+	password: string
 ) => {
-  const url = `${BASE_URL}/auth/login`;
+	const url = `${BASE_URL}/auth/login`;
 
-  console.log("URL:", url);
+	console.log("URL:", url);
 
-  try {
-    const response = await axios.post(url, {
-      username,
-      password,
-    });
+	try {
+		const response = await axios.post(url, {
+			grantType: "password",
+			username,
+			password,
+		});
 
-    return response.data;
-  } catch (error) {
-    console.log("AXIOS ERROR:", error);
-    throw error;
-  }
+		return response.data;
+	} catch (error) {
+		console.log("AXIOS ERROR:", error);
+		throw error;
+	}
 };

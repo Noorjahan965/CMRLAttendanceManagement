@@ -1,9 +1,12 @@
 using AttendanceAPI.DTOs;
 using AttendanceAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AttendanceAPI.Controllers;
-
+[EnableRateLimiting("global")]
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AttendanceController : ControllerBase
@@ -114,7 +117,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("hr/history")]
     public async Task<ActionResult>
         GetAttendanceHistory()
@@ -128,7 +132,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpPut("hr/attendance-status")]
     public async Task<IActionResult>
         UpdateAttendanceStatus(
@@ -149,7 +154,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("low-attendance")]
     public async Task<IActionResult>
         GetLowAttendanceEmployees(
@@ -166,7 +172,8 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
-
+    
+    [Authorize(Roles = "HR")]
     [HttpGet("hr/attendance-summary")]
     public async Task<IActionResult>
         GetAttendanceSummary(
@@ -186,4 +193,50 @@ public class AttendanceController : ControllerBase
 
         return Ok(result);
     }
+    [Authorize(Roles = "HR")]
+[HttpGet("hr/team-attendance-status")]
+public async Task<IActionResult>
+GetTeamAttendanceStatus([FromQuery] string hrUsername)
+{
+    _logger.LogInformation(
+        "HR {HrUsername} requested team attendance status list",
+        hrUsername);
+
+    var result = await _service
+        .GetTeamAttendanceStatusAsync(hrUsername);
+
+    return Ok(result);
+}
+
+[Authorize(Roles = "HR")]
+[HttpPost("hr/sign-in-employee")]
+public async Task<IActionResult>
+HrSignInEmployee([FromBody] HrSignInRequestDto request)
+{
+    _logger.LogInformation(
+        "HR {HrUsername} signing in employee {EmployeeUsername}",
+        request.HrUsername,
+        request.EmployeeUsername);
+
+    var result = await _service
+        .HrSignInEmployeeAsync(request);
+
+    return Ok(result);
+}
+
+[Authorize(Roles = "HR")]
+[HttpPost("hr/sign-out-employee")]
+public async Task<IActionResult>
+HrSignOutEmployee([FromBody] HrSignOutRequestDto request)
+{
+    _logger.LogInformation(
+        "HR {HrUsername} signing out employee {EmployeeUsername}",
+        request.HrUsername,
+        request.EmployeeUsername);
+
+    var result = await _service
+        .HrSignOutEmployeeAsync(request);
+
+    return Ok(result);
+}
 }

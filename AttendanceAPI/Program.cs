@@ -9,11 +9,19 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
 using System.Threading.RateLimiting;
+using MySqlConnector;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:5214");
 builder.Services.AddControllers();
-builder.Services.AddDataProtection();
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(
+        new DirectoryInfo(
+            Path.Combine(
+                builder.Environment.ContentRootPath,
+                "DataProtectionKeys")))
+    .SetApplicationName("AttendanceAPI");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
@@ -22,11 +30,24 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         ServerVersion.AutoDetect(
             builder.Configuration.GetConnectionString("DefaultConnection")));
 });
-
+builder.Services.AddScoped<MySqlConnection>(_ =>
+    new MySqlConnection(
+        builder.Configuration
+            .GetConnectionString("DefaultConnection")));
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+    options.Events = new JwtBearerEvents
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        OnAuthenticationFailed = context =>
+        {
+            
+            return Task.CompletedTask;
+        }
+    };
+
+    options.TokenValidationParameters =
+        new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
@@ -34,10 +55,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(
+                        builder.Configuration["Jwt:Key"]!))
         };
-    });
+});
 
 builder.Services.AddAuthorization();
 
@@ -68,11 +91,38 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<DataProtectionService>();
 builder.Services.AddHostedService<AttendanceBackgroundService>();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter: Bearer {your token}"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 var app = builder.Build();
 
 app.UseSwagger();

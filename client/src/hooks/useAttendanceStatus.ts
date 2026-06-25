@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
-import Geolocation from "react-native-geolocation-service"; 
+import Geolocation from "react-native-geolocation-service";
 import { getUser } from "../utils/storage";
 import { validateAttendance, getAttendanceStatus } from "@/services/attendanceService";
 
@@ -81,6 +81,7 @@ export function useAttendanceStatus() {
             else setRefreshing(true);
 
             const data = await getUser();
+            
             setUser(data);
             if (!data) return;
 
@@ -119,9 +120,15 @@ export function useAttendanceStatus() {
                 signOutWindowStart: attendanceStatus.signOutWindowStart ?? "",
                 message: validation.message ?? attendanceStatus.message,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.log("Initialize error:", error);
-            Alert.alert("Error", "Failed to load attendance status");
+            console.log("Response:", error?.response?.data);
+            console.log("Status:", error?.response?.status);
+
+            Alert.alert(
+                "Error",
+                JSON.stringify(error?.response?.data || error.message)
+            );
         } finally {
             setLoading(false);
             setRefreshing(false);

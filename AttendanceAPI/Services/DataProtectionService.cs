@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography;
 
 namespace AttendanceAPI.Services;
 
@@ -19,8 +20,24 @@ public class DataProtectionService
         return _protector.Protect(value);
     }
 
-    public string Decrypt(string value)
+    public string? Decrypt(string value)
     {
-        return _protector.Unprotect(value);
+        if (string.IsNullOrEmpty(value))
+            return null;
+
+        try
+        {
+            return _protector.Unprotect(value);
+        }
+        
+        catch (Exception ex)
+{
+    Console.WriteLine("========== DECRYPT ERROR ==========");
+    Console.WriteLine($"Value: {value}");
+    Console.WriteLine($"Message: {ex.Message}");
+    Console.WriteLine($"Type: {ex.GetType().Name}");
+    Console.WriteLine("==================================");
+    return value;
+}
     }
 }
