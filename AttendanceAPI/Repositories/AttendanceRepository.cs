@@ -5,6 +5,7 @@ using AttendanceAPI.Repositories.Interfaces;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using System.Data;
 
 namespace AttendanceAPI.Repositories;
 
@@ -19,6 +20,12 @@ public class AttendanceRepository : IAttendanceRepository
     {
         _context = context;
         _connection = connection;
+    }
+
+    private async Task EnsureOpenAsync()
+    {
+        if (_connection.State != ConnectionState.Open)
+            await _connection.OpenAsync();
     }
 
     // ── EF Core (writes + simple reads) ─────────────────────────
@@ -78,16 +85,18 @@ public class AttendanceRepository : IAttendanceRepository
     {
         const string sql = """
             SELECT 
-                a.attendance_id   AS AttendanceId,
-                a.employee_id     AS EmployeeId,
-                a.attendance_date AS AttendanceDate,
-                a.sign_in_time    AS SignInTime,
-                a.sign_out_time   AS SignOutTime,
+                a.attendance_id     AS AttendanceId,
+                a.employee_id       AS EmployeeId,
+                a.attendance_date   AS AttendanceDate,
+                a.sign_in_time      AS SignInTime,
+                a.sign_out_time     AS SignOutTime,
                 a.attendance_status AS AttendanceStatus
             FROM attendance_master a
             WHERE a.sign_in_time IS NOT NULL
               AND a.sign_out_time IS NULL
             """;
+
+        await EnsureOpenAsync();
 
         var result = await _connection
             .QueryAsync<AttendanceMaster>(sql);
@@ -115,6 +124,8 @@ public class AttendanceRepository : IAttendanceRepository
               AND MONTH(attendance_date) = @Month
             """;
 
+        await EnsureOpenAsync();
+
         var result = await _connection
             .QueryAsync<AttendanceMaster>(sql,
                 new { EmployeeId = employeeId, Year = year, Month = month });
@@ -140,6 +151,8 @@ public class AttendanceRepository : IAttendanceRepository
             WHERE YEAR(a.attendance_date)  = @Year
               AND MONTH(a.attendance_date) = @Month
             """;
+
+        await EnsureOpenAsync();
 
         var result = await _connection
             .QueryAsync<AttendanceMaster, EmployeeMaster, AttendanceMaster>(
@@ -173,6 +186,8 @@ public class AttendanceRepository : IAttendanceRepository
             ORDER BY a.attendance_date DESC
             """;
 
+        await EnsureOpenAsync();
+
         var result = await _connection
             .QueryAsync<AttendanceMaster, EmployeeMaster, AttendanceMaster>(
                 sql,
@@ -198,6 +213,8 @@ public class AttendanceRepository : IAttendanceRepository
             FROM user_login
             WHERE username = @Username
             """;
+
+        await EnsureOpenAsync();
 
         var loggedInUser = await _connection
             .QueryFirstOrDefaultAsync<dynamic>(
@@ -269,15 +286,15 @@ public class AttendanceRepository : IAttendanceRepository
             {
                 result.Add(new LowAttendanceDto
                 {
-                    EmployeeId          = (int)row.EmployeeId,
-                    EmployeeCode        = (string)row.EmployeeCode ?? "",
-                    EmployeeName        = (string)row.EmployeeName ?? "",
-                    Username            = (string)row.Username,
-                    Role                = (string)row.Role,
+                    EmployeeId           = (int)row.EmployeeId,
+                    EmployeeCode         = (string)row.EmployeeCode ?? "",
+                    EmployeeName         = (string)row.EmployeeName ?? "",
+                    Username             = (string)row.Username,
+                    Role                 = (string)row.Role,
                     AttendancePercentage = percentage,
-                    PresentDays         = presentDays,
-                    HalfDays            = halfDays,
-                    AbsentDays          = absentDays
+                    PresentDays          = presentDays,
+                    HalfDays             = halfDays,
+                    AbsentDays           = absentDays
                 });
             }
         }

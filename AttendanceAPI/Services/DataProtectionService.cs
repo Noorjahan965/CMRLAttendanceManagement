@@ -29,10 +29,15 @@ public class DataProtectionService
         {
             return _protector.Unprotect(value);
         }
-        catch (CryptographicException)
-        {
-            // Value is plain text (existing data, never encrypted)
-            return value;
-        }
+        
+        catch (Exception ex)
+{
+    Console.WriteLine("========== DECRYPT ERROR ==========");
+    Console.WriteLine($"Value: {value}");
+    Console.WriteLine($"Message: {ex.Message}");
+    Console.WriteLine($"Type: {ex.GetType().Name}");
+    Console.WriteLine("==================================");
+    return value;
+}
     }
 }
