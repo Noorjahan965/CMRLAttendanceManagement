@@ -68,24 +68,25 @@ export type EmployeeUpdatePayload = {
 };
 
 export const getFormOptions = async (): Promise<EmployeeFormOptions> => {
-    const response = await apiClient.get(`/employee/form-options`); // CHANGED: was axios.get(`${BASE_URL}/...`)
+    const response = await apiClient.get(`/employee/form-options`); 
     return response.data;
 };
 
 export const getEmployees = async (): Promise<Employee[]> => {
-    const response = await apiClient.get(`/employee`); // CHANGED: was axios.get(`${BASE_URL}/...`)
+    const response = await apiClient.get(`/employee`); 
     return response.data;
 };
 
 export const searchEmployees = async (keyword: string): Promise<Employee[]> => {
-    const response = await apiClient.get(`/employee/search`, { // CHANGED: was axios.get(`${BASE_URL}/...`)
+    const response = await apiClient.get(`/employee/search`, { 
         params: { keyword },
     });
     return response.data;
 };
 
 export const createEmployee = async (payload: EmployeeCreatePayload) => {
-    const response = await apiClient.post(`/employee`, payload); // CHANGED: was axios.post(`${BASE_URL}/...`)
+    console.log("CREATE PAYLOAD:", JSON.stringify(payload));
+    const response = await apiClient.post(`/employee`, payload); 
     return response.data;
 };
 
@@ -93,7 +94,7 @@ export const updateEmployee = async (
     employeeId: number,
     payload: EmployeeUpdatePayload
 ) => {
-    const response = await apiClient.put( // CHANGED: was axios.put(`${BASE_URL}/...`)
+    const response = await apiClient.put( 
         `/employee/${employeeId}`,
         payload
     );

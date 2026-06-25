@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient"; 
+import { apiClient } from "./apiClient";
 
 
 function getLocalTimeString(): string {
@@ -13,7 +13,7 @@ export const validateAttendance = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await apiClient.post( 
+    const response = await apiClient.post(
         `/attendance/validate`,
         {
             username,
@@ -26,7 +26,7 @@ export const validateAttendance = async (
 };
 
 export const getAttendanceStatus = async (username: string) => {
-    const response = await apiClient.get( 
+    const response = await apiClient.get(
         `/attendance/status`,
         { params: { username } }
     );
@@ -38,7 +38,7 @@ export const signIn = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await apiClient.post( 
+    const response = await apiClient.post(
         `/attendance/signin`,
         {
             username,
@@ -55,7 +55,7 @@ export const signOut = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await apiClient.post( 
+    const response = await apiClient.post(
         `/attendance/signout`,
         {
             username,
@@ -64,5 +64,36 @@ export const signOut = async (
             currentTime: getLocalTimeString(),
         }
     );
+    return response.data;
+};
+
+
+
+export const getLowAttendance = async (username: string) => {
+    const response = await apiClient.get(`/attendance/low-attendance`, {
+        params: { username }
+    });
+    return response.data;
+};
+
+export const getHRAttendanceHistory = async () => {
+    const response = await apiClient.get(`/attendance/hr/history`);
+    return response.data;
+};
+
+export const updateAttendanceStatus = async (
+    employeeCode: string,
+    username: string,
+    attendanceDate: string,
+    newStatus: string,
+    remarks: string | null
+) => {
+    const response = await apiClient.put(`/attendance/hr/attendance-status`, {
+        employeeCode,
+        username,
+        attendanceDate,
+        newStatus,
+        remarks,
+    });
     return response.data;
 };

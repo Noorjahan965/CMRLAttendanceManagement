@@ -1,6 +1,6 @@
 export const ROLE_IDS = {
-    ADMIN: "1",
-    HR: "2",
-    SUPERVISOR: "3",
-    EMPLOYEE: "4",
+    ADMIN: "Admin",
+    HR: "HR",
+    SUPERVISOR: "Supervisor",
+    EMPLOYEE: "Employee",
 } as const;
