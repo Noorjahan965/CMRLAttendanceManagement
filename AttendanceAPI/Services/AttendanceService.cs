@@ -341,12 +341,7 @@ public class AttendanceService : IAttendanceService
             employee.Shift.EndTime
                 .Add(TimeSpan.FromHours(2));
 
-        Console.WriteLine("========== SIGN OUT DEBUG ==========");
-        Console.WriteLine($"Current Time  : {now}");
-        Console.WriteLine($"Shift End     : {employee.Shift.EndTime}");
-        Console.WriteLine($"Window Start  : {signOutWindowStart}");
-        Console.WriteLine($"Window End    : {signOutWindowEnd}");
-        Console.WriteLine("===================================");
+        
 
         if (now < signOutWindowStart)
         {
@@ -630,4 +625,133 @@ GetAttendanceHistoryAsync()
             })
             .ToList();
     }
+    public async Task<List<HrTeamAttendanceStatusDto>>
+GetTeamAttendanceStatusAsync(string hrUsername)
+{
+    return await _repository
+        .GetTeamAttendanceStatusAsync(hrUsername);
+}
+
+public async Task<object>
+HrSignInEmployeeAsync(HrSignInRequestDto request)
+{
+    // Verify HR role
+    var hrRoleId = await _repository
+        .GetHrRoleIdByUsernameAsync(request.HrUsername);
+
+    if (hrRoleId == null || (hrRoleId != 2 && hrRoleId != 3))
+        return new { success = false, message = "Unauthorized" };
+
+    // Get employee with shift
+    var employee = await _repository
+        .GetEmployeeWithShiftByUsernameAsync(
+            request.EmployeeUsername);
+
+    if (employee == null)
+        return new { success = false, message = "Employee not found" };
+
+    // Check already signed in today
+    var existing = await _repository
+        .GetTodayAttendanceAsync(employee.EmployeeId);
+
+    if (existing != null)
+        return new { success = false, message = "Employee already signed in today" };
+
+    // Check shift time window — sign in allowed from shift start
+    var now = DateTime.Now.TimeOfDay;
+    var shiftStart = employee.Shift!.StartTime;
+    var shiftEnd   = employee.Shift.EndTime;
+    var signOutDeadline = shiftEnd.Add(TimeSpan.FromHours(2));
+
+    if (now > signOutDeadline)
+        return new { success = false, message = "Shift has ended, cannot sign in" };
+
+    // Sign in with shift start time (not current time)
+    var signInTime = DateTime.Today.Add(shiftStart);
+
+    var attendance = new AttendanceMaster
+    {
+        EmployeeId       = employee.EmployeeId,
+        AttendanceDate   = DateTime.Today,
+        SignInTime       = signInTime,
+        AttendanceStatus = "Half Day",
+        Remarks          = $"Signed in by HR: {request.HrUsername}"
+    };
+
+    attendance = await _repository
+        .CreateAttendanceAsync(attendance);
+
+    await _auditLogService.LogAsync(
+        employee.EmployeeId,
+        "HR_SIGN_IN",
+        "attendance_master",
+        attendance.AttendanceId,
+        $"HR {request.HrUsername} signed in employee {request.EmployeeUsername}");
+
+    return new
+    {
+        success      = true,
+        message      = "Employee signed in successfully",
+        attendanceId = attendance.AttendanceId,
+        signInTime   = signInTime
+    };
+}
+
+public async Task<object>
+HrSignOutEmployeeAsync(HrSignOutRequestDto request)
+{
+    // Verify HR role
+    var hrRoleId = await _repository
+        .GetHrRoleIdByUsernameAsync(request.HrUsername);
+
+    if (hrRoleId == null || (hrRoleId != 2 && hrRoleId != 3))
+        return new { success = false, message = "Unauthorized" };
+
+    // Get employee with shift
+    var employee = await _repository
+        .GetEmployeeWithShiftByUsernameAsync(
+            request.EmployeeUsername);
+
+    if (employee == null)
+        return new { success = false, message = "Employee not found" };
+
+    // Must have signed in first
+    var attendance = await _repository
+        .GetTodayAttendanceAsync(employee.EmployeeId);
+
+    if (attendance == null || attendance.SignInTime == null)
+        return new { success = false, message = "Employee has not signed in today" };
+
+    if (attendance.SignOutTime != null)
+        return new { success = false, message = "Employee already signed out" };
+
+    // Check sign out time window
+    var now             = DateTime.Now.TimeOfDay;
+    var shiftEnd        = employee.Shift!.EndTime;
+    var signOutDeadline = shiftEnd.Add(TimeSpan.FromHours(2));
+
+    if (now > signOutDeadline)
+        return new { success = false, message = "Sign out window has expired" };
+
+    attendance.SignOutTime       = DateTime.Now;
+    attendance.AttendanceStatus  = "Present";
+    attendance.Remarks           = $"Signed out by HR: {request.HrUsername}";
+
+    await _repository.SaveAsync();
+
+    await _auditLogService.LogAsync(
+        employee.EmployeeId,
+        "HR_SIGN_OUT",
+        "attendance_master",
+        attendance.AttendanceId,
+        $"HR {request.HrUsername} signed out employee {request.EmployeeUsername}");
+
+    return new
+    {
+        success      = true,
+        message      = "Employee signed out successfully",
+        attendanceId = attendance.AttendanceId,
+        signOutTime  = attendance.SignOutTime
+    };
+}
 }

@@ -301,4 +301,114 @@ public class AttendanceRepository : IAttendanceRepository
 
         return result;
     }
+    public async Task<int?>
+GetHrRoleIdByUsernameAsync(string username)
+{
+    const string sql = """
+        SELECT role_id AS RoleId
+        FROM user_login
+        WHERE username = @Username
+          AND is_active = 1
+        """;
+
+    await EnsureOpenAsync();
+
+    var result = await _connection
+        .QueryFirstOrDefaultAsync<dynamic>(
+            sql, new { Username = username });
+
+    return result == null ? null : (int?)result.RoleId;
+}
+
+public async Task<EmployeeMaster?>
+GetEmployeeWithShiftByUsernameAsync(string username)
+{
+    var user = await _context.UserLogins
+        .FirstOrDefaultAsync(x => x.Username == username);
+
+    if (user == null) return null;
+
+    return await _context.Employees
+        .Include(e => e.Shift)
+        .FirstOrDefaultAsync(
+            e => e.EmployeeId == user.EmployeeId);
+}
+
+public async Task<List<HrTeamAttendanceStatusDto>>
+GetTeamAttendanceStatusAsync(string hrUsername)
+{
+    const string hrSql = """
+        SELECT role_id AS RoleId
+        FROM user_login
+        WHERE username = @Username
+          AND is_active = 1
+        """;
+
+    await EnsureOpenAsync();
+
+    var hrUser = await _connection
+        .QueryFirstOrDefaultAsync<dynamic>(
+            hrSql, new { Username = hrUsername });
+
+    if (hrUser == null)
+        return new List<HrTeamAttendanceStatusDto>();
+
+    int hrRoleId = (int)hrUser.RoleId;
+
+    const string sql = """
+        SELECT
+            e.employee_id       AS EmployeeId,
+            e.employee_code     AS EmployeeCode,
+            e.employee_name     AS EmployeeName,
+            u.username          AS Username,
+            s.start_time        AS ShiftStartTime,
+            s.end_time          AS ShiftEndTime,
+            a.attendance_id     AS AttendanceId,
+            a.sign_in_time      AS SignInTime,
+            a.sign_out_time     AS SignOutTime,
+            a.attendance_status AS AttendanceStatus
+        FROM employee_master e
+        INNER JOIN user_login u   ON e.employee_id = u.employee_id
+        INNER JOIN shift_master s ON e.shift_id    = s.shift_id
+        LEFT JOIN attendance_master a
+            ON e.employee_id = a.employee_id
+           AND DATE(a.attendance_date) = CURDATE()
+        WHERE e.is_active = 1
+          AND (
+                (@HrRoleId = 2 AND (u.role_id = 3 OR u.role_id = 4))
+                OR (@HrRoleId = 3 AND u.role_id = 4)
+              )
+        ORDER BY e.employee_name
+        """;
+
+    var rows = await _connection.QueryAsync<dynamic>(
+        sql, new { HrRoleId = hrRoleId });
+
+    return rows.Select(row => {
+    bool hasSignedIn  = row.SignInTime != null;
+    bool hasSignedOut = row.SignOutTime != null;
+
+    return new HrTeamAttendanceStatusDto
+    {
+        EmployeeId       = (int)row.EmployeeId,
+        EmployeeCode     = (string)row.EmployeeCode ?? "",
+        EmployeeName     = (string)row.EmployeeName ?? "",
+        Username         = (string)row.Username,
+        ShiftStartTime   = ((TimeSpan)row.ShiftStartTime).ToString(@"hh\:mm"),
+        ShiftEndTime     = ((TimeSpan)row.ShiftEndTime).ToString(@"hh\:mm"),
+        HasSignedIn      = hasSignedIn,
+        HasSignedOut     = hasSignedOut,
+        SignInTime       = hasSignedIn ? (DateTime?)row.SignInTime : null,
+        SignOutTime      = hasSignedOut ? (DateTime?)row.SignOutTime : null,
+        AttendanceStatus = !hasSignedIn
+            ? "Not Signed In"
+            : hasSignedOut
+                ? "Present"
+                : "Half Day",
+        AttendanceId     = row.AttendanceId == null
+            ? null
+            : (int?)row.AttendanceId
+    };
+}).ToList();
+}
 }
