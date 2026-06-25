@@ -182,12 +182,12 @@ function EditEmployeeModal({
                     </View>
 
                     <ScrollView
-  keyboardShouldPersistTaps="handled"
-  showsVerticalScrollIndicator={false}
-  contentContainerStyle={{
-    paddingBottom: 120,
-  }}
->
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{
+                            paddingBottom: 120,
+                        }}
+                    >
                         {/* Locked fields shown as read-only info */}
                         <View style={styles.lockedBanner}>
                             <Text style={styles.lockedBannerText}>
@@ -401,6 +401,8 @@ export default function EmployeesScreen() {
         if (!shiftId) return Alert.alert("Missing Field", "Please select Shift");
         if (!username.trim()) return Alert.alert("Missing Field", "Username is required");
         if (!password.trim()) return Alert.alert("Missing Field", "Password is required");
+        if (password.trim().length < 8)
+            return Alert.alert("Invalid Password", "Password must be at least 8 characters");
         if (!roleId) return Alert.alert("Missing Field", "Please select Role");
         if (mobileNo && (mobileNo.length !== 10 || !/^\d+$/.test(mobileNo)))
             return Alert.alert("Invalid Mobile", "Mobile number must be exactly 10 digits");
@@ -423,14 +425,11 @@ export default function EmployeesScreen() {
                 roleId: roleId!,
             });
 
-            if (result.success) {
-                Alert.alert("Success ✓", result.message || "Employee created successfully");
-                resetForm();
-                setShowForm(false);
-                loadData();
-            } else {
-                Alert.alert("Failed", result.message || "Could not create employee");
-            }
+            
+            Alert.alert("Success ✓", result.message || "Employee created successfully");
+            resetForm();
+            setShowForm(false);
+            loadData();
         } catch (error: any) {
             console.log("CREATE ERROR:", error);
             console.log("CREATE ERROR STATUS:", error?.response?.status);
@@ -454,214 +453,214 @@ export default function EmployeesScreen() {
 
     return (
         <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : "height"}
-  >
-        <View style={styles.screen}>
-           
-            
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+            <View style={styles.screen}>
 
-            {/* Search bar */}
-            {!showForm &&(
-            <View style={styles.searchRow}>
-                <Ionicons name="search" size={20} color="#9ca3af" />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search by name, code, department..."
-                    placeholderTextColor="#9ca3af"
-                    value={searchQuery}
-                    onChangeText={handleSearch}
-                    clearButtonMode="while-editing"
-                />
-                {searching && (
-                    <ActivityIndicator
-                        size="small"
-                        color="#2563eb"
-                        style={styles.searchSpinner}
+
+
+                {/* Search bar */}
+                {!showForm && (
+                    <View style={styles.searchRow}>
+                        <Ionicons name="search" size={20} color="#9ca3af" />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search by name, code, department..."
+                            placeholderTextColor="#9ca3af"
+                            value={searchQuery}
+                            onChangeText={handleSearch}
+                            clearButtonMode="while-editing"
+                        />
+                        {searching && (
+                            <ActivityIndicator
+                                size="small"
+                                color="#2563eb"
+                                style={styles.searchSpinner}
+                            />
+                        )}
+                    </View>
+
+                )}
+
+                {/* Add button */}
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setShowForm(!showForm)}
+                >
+                    <Text style={styles.addButtonText}>
+                        {showForm ? "✕ Close Form" : "+ Add New Employee"}
+                    </Text>
+                </TouchableOpacity>
+
+                <ScrollView contentContainerStyle={{ paddingBottom: 40 }}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                        />
+                    }>
+                    {/* ── Create Form ── */}
+                    {showForm && options && (
+                        <View style={styles.formCard}>
+                            <Text style={styles.formTitle}>New Employee Details</Text>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Employee Code *</Text>
+                                <TextInput style={styles.input} value={employeeCode}
+                                    onChangeText={setEmployeeCode} placeholder="e.g. EMP011"
+                                    autoCapitalize="characters" />
+                            </View>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Employee Name *</Text>
+                                <TextInput style={styles.input} value={employeeName}
+                                    onChangeText={setEmployeeName} placeholder="Full name" />
+                            </View>
+
+                            <Dropdown label="Gender *" options={options.genders}
+                                selectedId={genderId} onSelect={setGenderId} />
+                            <Dropdown label="Community" options={options.communities}
+                                selectedId={communityId} onSelect={setCommunityId}
+                                placeholder="Select (optional)" />
+                            <Dropdown label="Designation *" options={options.designations}
+                                selectedId={designationId} onSelect={setDesignationId} />
+                            <Dropdown label="Department *" options={options.departments}
+                                selectedId={departmentId} onSelect={setDepartmentId} />
+                            <Dropdown label="Location *" options={options.locations}
+                                selectedId={locationId} onSelect={setLocationId} />
+                            <Dropdown label="Shift *" options={options.shifts}
+                                selectedId={shiftId} onSelect={setShiftId} />
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Mobile Number</Text>
+                                <TextInput style={styles.input} value={mobileNo}
+                                    onChangeText={setMobileNo} placeholder="10 digit number"
+                                    keyboardType="number-pad" maxLength={10} />
+                            </View>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Email</Text>
+                                <TextInput style={styles.input} value={email}
+                                    onChangeText={setEmail} placeholder="email@example.com"
+                                    keyboardType="email-address" autoCapitalize="none" />
+                            </View>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Address</Text>
+                                <TextInput style={[styles.input, styles.textArea]} value={address}
+                                    onChangeText={setAddress} placeholder="Communication address"
+                                    multiline numberOfLines={3} />
+                            </View>
+
+                            <Text style={styles.sectionDivider}>Login Details</Text>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Username *</Text>
+                                <TextInput style={styles.input} value={username}
+                                    onChangeText={setUsername} placeholder="Login username"
+                                    autoCapitalize="none" />
+                            </View>
+
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Password *</Text>
+
+                                <View style={styles.passwordContainer}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        placeholder="Login password"
+                                        secureTextEntry={!showPassword}
+                                    />
+
+                                    <TouchableOpacity
+                                        onPress={() => setShowPassword(!showPassword)}
+                                    >
+                                        <Ionicons
+                                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                            size={22}
+                                            color="#6b7280"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            <Dropdown label="Role *" options={options.roles}
+                                selectedId={roleId} onSelect={setRoleId} />
+
+                            <TouchableOpacity style={styles.submitButton}
+                                onPress={handleCreate} disabled={submitting}>
+                                {submitting
+                                    ? <ActivityIndicator color="#fff" />
+                                    : <Text style={styles.submitButtonText}>Create Employee</Text>
+                                }
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {!showForm && (
+                        <>
+                            {/* ── Employee List ── */}
+                            <Text style={styles.listTitle}>
+                                {searchQuery
+                                    ? `Results (${filtered.length})`
+                                    : `Active Employees (${filtered.length})`}
+                            </Text>
+
+                            {filtered.length === 0 ? (
+                                <Text style={styles.emptyText}>
+                                    {searchQuery ? "No employees match your search." : "No employees found."}
+                                </Text>
+                            ) : (
+                                filtered.map((emp) => (
+                                    <View key={emp.employeeId} style={styles.employeeCard}>
+                                        <View style={styles.employeeCardHeader}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.employeeName}>{emp.employeeName}</Text>
+                                                <Text style={styles.employeeCode}>{emp.employeeCode}</Text>
+                                            </View>
+                                            {/* Edit button */}
+                                            <TouchableOpacity
+                                                style={styles.editButton}
+                                                onPress={() => {
+                                                    setEditingEmployee(emp);
+                                                    setShowEditModal(true);
+                                                }}
+                                            >
+                                                <Ionicons name="pencil" size={26} color="#2563eb" />
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <Text style={styles.employeeDetail}>
+                                            {emp.designationName} · {emp.departmentName}
+                                        </Text>
+                                        <Text style={styles.employeeDetail}>
+                                            <Ionicons name="location" size={15} color="#2563eb" /> {emp.locationName}  <Ionicons name="time-outline" size={15} color="#2563eb" /> {emp.shiftName}
+                                        </Text>
+                                        {emp.mobileNo && (
+                                            <Text style={styles.employeeDetail}><Ionicons name="call" size={15} color="#2563eb" /> {emp.mobileNo}</Text>
+                                        )}
+                                        {!emp.isActive && (
+                                            <Text style={styles.inactiveBadge}>Inactive</Text>
+                                        )}
+                                    </View>
+                                ))
+                            )}
+                        </>
+                    )}
+                </ScrollView>
+
+                {/* Edit Modal — rendered once, fed the selected employee */}
+                {options && (
+                    <EditEmployeeModal
+                        employee={editingEmployee}
+                        options={options}
+                        visible={showEditModal}
+                        onClose={() => setShowEditModal(false)}
+                        onSaved={loadData}
                     />
                 )}
             </View>
-
-            )}
-
-            {/* Add button */}
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowForm(!showForm)}
-            >
-                <Text style={styles.addButtonText}>
-                    {showForm ? "✕ Close Form" : "+ Add New Employee"}
-                </Text>
-            </TouchableOpacity>
-
-            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}
-             refreshControl={
-        <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-        />
-    }>
-                {/* ── Create Form ── */}
-                {showForm && options && (
-                    <View style={styles.formCard}>
-                        <Text style={styles.formTitle}>New Employee Details</Text>
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Employee Code *</Text>
-                            <TextInput style={styles.input} value={employeeCode}
-                                onChangeText={setEmployeeCode} placeholder="e.g. EMP011"
-                                autoCapitalize="characters" />
-                        </View>
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Employee Name *</Text>
-                            <TextInput style={styles.input} value={employeeName}
-                                onChangeText={setEmployeeName} placeholder="Full name" />
-                        </View>
-
-                        <Dropdown label="Gender *" options={options.genders}
-                            selectedId={genderId} onSelect={setGenderId} />
-                        <Dropdown label="Community" options={options.communities}
-                            selectedId={communityId} onSelect={setCommunityId}
-                            placeholder="Select (optional)" />
-                        <Dropdown label="Designation *" options={options.designations}
-                            selectedId={designationId} onSelect={setDesignationId} />
-                        <Dropdown label="Department *" options={options.departments}
-                            selectedId={departmentId} onSelect={setDepartmentId} />
-                        <Dropdown label="Location *" options={options.locations}
-                            selectedId={locationId} onSelect={setLocationId} />
-                        <Dropdown label="Shift *" options={options.shifts}
-                            selectedId={shiftId} onSelect={setShiftId} />
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Mobile Number</Text>
-                            <TextInput style={styles.input} value={mobileNo}
-                                onChangeText={setMobileNo} placeholder="10 digit number"
-                                keyboardType="number-pad" maxLength={10} />
-                        </View>
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Email</Text>
-                            <TextInput style={styles.input} value={email}
-                                onChangeText={setEmail} placeholder="email@example.com"
-                                keyboardType="email-address" autoCapitalize="none" />
-                        </View>
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Address</Text>
-                            <TextInput style={[styles.input, styles.textArea]} value={address}
-                                onChangeText={setAddress} placeholder="Communication address"
-                                multiline numberOfLines={3} />
-                        </View>
-
-                        <Text style={styles.sectionDivider}>Login Details</Text>
-
-                        <View style={styles.fieldGroup}>
-                            <Text style={styles.label}>Username *</Text>
-                            <TextInput style={styles.input} value={username}
-                                onChangeText={setUsername} placeholder="Login username"
-                                autoCapitalize="none" />
-                        </View>
-
-                        <View style={styles.fieldGroup}>
-  <Text style={styles.label}>Password *</Text>
-
-  <View style={styles.passwordContainer}>
-    <TextInput
-      style={styles.passwordInput}
-      value={password}
-      onChangeText={setPassword}
-      placeholder="Login password"
-      secureTextEntry={!showPassword}
-    />
-
-    <TouchableOpacity
-      onPress={() => setShowPassword(!showPassword)}
-    >
-      <Ionicons
-        name={showPassword ? "eye-off-outline" : "eye-outline"}
-        size={22}
-        color="#6b7280"
-      />
-    </TouchableOpacity>
-  </View>
-</View>
-
-                        <Dropdown label="Role *" options={options.roles}
-                            selectedId={roleId} onSelect={setRoleId} />
-
-                        <TouchableOpacity style={styles.submitButton}
-                            onPress={handleCreate} disabled={submitting}>
-                            {submitting
-                                ? <ActivityIndicator color="#fff" />
-                                : <Text style={styles.submitButtonText}>Create Employee</Text>
-                            }
-                        </TouchableOpacity>
-                    </View>
-                )}
-                {!showForm && (
-                    <>
-                {/* ── Employee List ── */}
-                <Text style={styles.listTitle}>
-                    {searchQuery
-                        ? `Results (${filtered.length})`
-                        : `Active Employees (${filtered.length})`}
-                </Text>
-
-                {filtered.length === 0 ? (
-                    <Text style={styles.emptyText}>
-                        {searchQuery ? "No employees match your search." : "No employees found."}
-                    </Text>
-                ) : (
-                    filtered.map((emp) => (
-                        <View key={emp.employeeId} style={styles.employeeCard}>
-                            <View style={styles.employeeCardHeader}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.employeeName}>{emp.employeeName}</Text>
-                                    <Text style={styles.employeeCode}>{emp.employeeCode}</Text>
-                                </View>
-                                {/* Edit button */}
-                                <TouchableOpacity
-                                    style={styles.editButton}
-                                    onPress={() => {
-                                        setEditingEmployee(emp);
-                                        setShowEditModal(true);
-                                    }}
-                                >
-                                    <Ionicons name="pencil" size={26} color="#2563eb" />
-                                </TouchableOpacity>
-                            </View>
-
-                            <Text style={styles.employeeDetail}>
-                                {emp.designationName} · {emp.departmentName}
-                            </Text>
-                            <Text style={styles.employeeDetail}>
-                                <Ionicons name="location" size={15} color="#2563eb" /> {emp.locationName}  <Ionicons name="time-outline" size={15} color="#2563eb" /> {emp.shiftName}
-                            </Text>
-                            {emp.mobileNo && (
-                                <Text style={styles.employeeDetail}><Ionicons name="call" size={15} color="#2563eb" /> {emp.mobileNo}</Text>
-                            )}
-                            {!emp.isActive && (
-                                <Text style={styles.inactiveBadge}>Inactive</Text>
-                            )}
-                        </View>
-                    ))
-                )}
-                </>
-                )}
-            </ScrollView>
-
-            {/* Edit Modal — rendered once, fed the selected employee */}
-            {options && (
-                <EditEmployeeModal
-                    employee={editingEmployee}
-                    options={options}
-                    visible={showEditModal}
-                    onClose={() => setShowEditModal(false)}
-                    onSaved={loadData}
-                />
-            )}
-        </View>
         </KeyboardAvoidingView>
     );
 }
@@ -771,18 +770,18 @@ const styles = StyleSheet.create({
     toggleOff: { backgroundColor: "#9ca3af" },
     toggleText: { color: "#fff", fontWeight: "600", fontSize: 13 },
     passwordContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#d1d5db",
-  borderRadius: 8,
-  backgroundColor: "#fff",
-  paddingHorizontal: 12,
-},
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#d1d5db",
+        borderRadius: 8,
+        backgroundColor: "#fff",
+        paddingHorizontal: 12,
+    },
 
-passwordInput: {
-  flex: 1,
-  fontSize: 15,
-  paddingVertical: 12,
-},
+    passwordInput: {
+        flex: 1,
+        fontSize: 15,
+        paddingVertical: 12,
+    },
 });

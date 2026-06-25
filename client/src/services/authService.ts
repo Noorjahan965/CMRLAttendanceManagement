@@ -11,6 +11,7 @@ export const loginUser = async (
 
 	try {
 		const response = await axios.post(url, {
+			grantType: "password",
 			username,
 			password,
 		});

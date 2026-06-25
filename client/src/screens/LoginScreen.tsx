@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }: any) {
 			const trimmedPassword = password.trim();
 
 			const data = await loginUser(trimmedUsername, trimmedPassword);
-			
+
 			await saveUser(data);
 
 			navigation.replace("Home");
@@ -38,7 +38,7 @@ export default function LoginScreen({ navigation }: any) {
 
 			Alert.alert(
 				"Error",
-				error?.message || "Login Failed"
+				error?.response?.data?.message || error?.message || "Login Failed"
 			);
 		}
 	};
