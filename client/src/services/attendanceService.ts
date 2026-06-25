@@ -1,13 +1,11 @@
-import axios from "axios";
-import { BASE_URL } from "@/constants/api";
+import { apiClient } from "./apiClient"; 
 
-// Sends local wall-clock time (not UTC) so it matches shift windows
-// defined in local time (e.g. "09:00:00" IST) on the backend.
+
 function getLocalTimeString(): string {
     const now = new Date();
     const offsetMs = now.getTimezoneOffset() * 60000;
     const local = new Date(now.getTime() - offsetMs);
-    return local.toISOString().slice(0, -1); // strip trailing 'Z'
+    return local.toISOString().slice(0, -1);
 }
 
 export const validateAttendance = async (
@@ -15,8 +13,8 @@ export const validateAttendance = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await axios.post(
-        `${BASE_URL}/attendance/validate`,
+    const response = await apiClient.post( 
+        `/attendance/validate`,
         {
             username,
             latitude,
@@ -28,8 +26,8 @@ export const validateAttendance = async (
 };
 
 export const getAttendanceStatus = async (username: string) => {
-    const response = await axios.get(
-        `${BASE_URL}/attendance/status`,
+    const response = await apiClient.get( 
+        `/attendance/status`,
         { params: { username } }
     );
     return response.data;
@@ -40,8 +38,8 @@ export const signIn = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await axios.post(
-        `${BASE_URL}/attendance/signin`,
+    const response = await apiClient.post( 
+        `/attendance/signin`,
         {
             username,
             latitude,
@@ -57,8 +55,8 @@ export const signOut = async (
     latitude: number,
     longitude: number
 ) => {
-    const response = await axios.post(
-        `${BASE_URL}/attendance/signout`,
+    const response = await apiClient.post( 
+        `/attendance/signout`,
         {
             username,
             latitude,
