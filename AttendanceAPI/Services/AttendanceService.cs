@@ -225,10 +225,10 @@ public class AttendanceService : IAttendanceService
     }
 
     public async Task<AttendanceCalendarResponseDto>
-    GetAttendanceCalendarAsync(
-        string username,
-        int year,
-        int month)
+ GetAttendanceCalendarAsync(
+     string username,
+     int year,
+     int month)
     {
         var employee =
             await _repository.GetEmployeeByUsernameAsync(
@@ -261,6 +261,11 @@ public class AttendanceService : IAttendanceService
         int daysInMonth =
             DateTime.DaysInMonth(year, month);
 
+        // AFTER
+        var joiningDate = employee.JoiningDate.HasValue
+            ? employee.JoiningDate.Value.ToDateTime(TimeOnly.MinValue).Date
+            : (DateTime?)null;
+
         for (int day = 1; day <= daysInMonth; day++)
         {
             var currentDate =
@@ -277,9 +282,13 @@ public class AttendanceService : IAttendanceService
             {
                 status = attendance.AttendanceStatus;
             }
+            else if (joiningDate.HasValue && currentDate.Date < joiningDate.Value)
+            {
+                status = "NotMarked";  // before joining date
+            }
             else if (
-        currentDate.DayOfWeek == DayOfWeek.Saturday ||
-        currentDate.DayOfWeek == DayOfWeek.Sunday)
+                currentDate.DayOfWeek == DayOfWeek.Saturday ||
+                currentDate.DayOfWeek == DayOfWeek.Sunday)
             {
                 status = "Holiday";
             }
@@ -426,7 +435,7 @@ public class AttendanceService : IAttendanceService
                     presentDays -
                     halfDays;
 
-               
+
                 int percentage =
     (int)Math.Round(
         ((presentDays + (halfDays * 0.5))
@@ -538,23 +547,23 @@ public class AttendanceService : IAttendanceService
                     request.AttendanceDate);
 
         if (attendance == null)
-{
-    attendance = new AttendanceMaster
-    {
-        EmployeeId = employee.EmployeeId,
-        AttendanceDate = request.AttendanceDate.Date,
-        AttendanceStatus = request.NewStatus,
-        Remarks = request.Remarks
-    };
+        {
+            attendance = new AttendanceMaster
+            {
+                EmployeeId = employee.EmployeeId,
+                AttendanceDate = request.AttendanceDate.Date,
+                AttendanceStatus = request.NewStatus,
+                Remarks = request.Remarks
+            };
 
-    await _repository.CreateAttendanceAsync(attendance);
+            await _repository.CreateAttendanceAsync(attendance);
 
-    return new
-    {
-        success = true,
-        message = "Absent day converted successfully"
-    };
-}
+            return new
+            {
+                success = true,
+                message = "Absent day converted successfully"
+            };
+        }
 
         var oldStatus =
             attendance.AttendanceStatus;
