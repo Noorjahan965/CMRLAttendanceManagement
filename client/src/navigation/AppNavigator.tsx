@@ -5,6 +5,7 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import AttendanceScreen from "../screens/AttendanceScreen";
 import HistoryScreen from "../screens/HistoryScreen";
+import EmployeesScreen from "../screens/HR/EmployeesScreen"; 
 
 const Stack = createNativeStackNavigator();
 
@@ -20,10 +21,13 @@ export default function AppNavigator() {
                 options= {{ headerShown: false}} />
                 <Stack.Screen name="Attendance"
                 component={AttendanceScreen}
-                options= {{ headerShown: false}} />
+                options= {{ headerShown: true}} />
                 <Stack.Screen name="History"
                 component={HistoryScreen}
-                options= {{ headerShown: false}} />
+                options= {{ headerShown: true}} />
+                <Stack.Screen name="EmployeeManagement"
+                component={EmployeesScreen}
+                options= {{ headerShown: true}} />
             </Stack.Navigator>
         </NavigationContainer>
     )
