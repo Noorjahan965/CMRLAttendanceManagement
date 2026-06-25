@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import Ionicons from "react-native-vector-icons/Ionicons"; // CHANGED: was "@expo/vector-icons"
+import Ionicons from "react-native-vector-icons/Ionicons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 import {
     View,
     Text,
@@ -16,7 +18,7 @@ import {
 } from "react-native";
 
 import { usePullToRefresh } from "../../hooks/usePullToRefresh";
-// REMOVED: import { router } from "expo-router";  -> was unused in this file, no navigation call exists below
+
 import {
     getFormOptions,
     getEmployees,
@@ -27,6 +29,14 @@ import {
     EmployeeFormOptions,
     DropdownItem,
 } from "../../services/employeeService";
+
+// Date function
+function toDateOnly(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
 
 // ─── Reusable Dropdown ───────────────────────────────────────────────────────
 
@@ -331,6 +341,8 @@ export default function EmployeesScreen() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [roleId, setRoleId] = useState<number | null>(null);
+    const [joiningDate, setJoiningDate] = useState<Date | null>(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const loadData = useCallback(async () => {
         try {
@@ -388,7 +400,7 @@ export default function EmployeesScreen() {
         setEmployeeCode(""); setEmployeeName(""); setGenderId(null);
         setCommunityId(null); setDesignationId(null); setDepartmentId(null);
         setLocationId(null); setShiftId(null); setMobileNo("");
-        setEmail(""); setAddress(""); setUsername(""); setPassword(""); setRoleId(null);
+        setEmail(""); setAddress(""); setUsername(""); setPassword(""); setRoleId(null); setJoiningDate(null);
     };
 
     const handleCreate = async () => {
@@ -419,13 +431,13 @@ export default function EmployeesScreen() {
                 locationId: locationId!,
                 shiftId: shiftId!,
                 mobileNo, email, address,
-                joiningDate: null,
+                joiningDate: joiningDate ? toDateOnly(joiningDate) : null,
                 username: username.trim(),
                 password,
                 roleId: roleId!,
             });
 
-            
+
             Alert.alert("Success ✓", result.message || "Employee created successfully");
             resetForm();
             setShowForm(false);
@@ -509,13 +521,13 @@ export default function EmployeesScreen() {
                                 <Text style={styles.label}>Employee Code *</Text>
                                 <TextInput style={styles.input} value={employeeCode}
                                     onChangeText={setEmployeeCode} placeholder="e.g. EMP011"
-                                    autoCapitalize="characters" />
+                                    autoCapitalize="characters" placeholderTextColor="#9ca3af" />
                             </View>
 
                             <View style={styles.fieldGroup}>
                                 <Text style={styles.label}>Employee Name *</Text>
                                 <TextInput style={styles.input} value={employeeName}
-                                    onChangeText={setEmployeeName} placeholder="Full name" />
+                                    onChangeText={setEmployeeName} placeholder="Full name" placeholderTextColor="#9ca3af" />
                             </View>
 
                             <Dropdown label="Gender *" options={options.genders}
@@ -536,22 +548,53 @@ export default function EmployeesScreen() {
                                 <Text style={styles.label}>Mobile Number</Text>
                                 <TextInput style={styles.input} value={mobileNo}
                                     onChangeText={setMobileNo} placeholder="10 digit number"
-                                    keyboardType="number-pad" maxLength={10} />
+                                    keyboardType="number-pad" maxLength={10} placeholderTextColor="#9ca3af" />
                             </View>
 
                             <View style={styles.fieldGroup}>
                                 <Text style={styles.label}>Email</Text>
                                 <TextInput style={styles.input} value={email}
                                     onChangeText={setEmail} placeholder="email@example.com"
-                                    keyboardType="email-address" autoCapitalize="none" />
+                                    keyboardType="email-address" autoCapitalize="none" placeholderTextColor="#9ca3af" />
                             </View>
 
                             <View style={styles.fieldGroup}>
                                 <Text style={styles.label}>Address</Text>
                                 <TextInput style={[styles.input, styles.textArea]} value={address}
                                     onChangeText={setAddress} placeholder="Communication address"
-                                    multiline numberOfLines={3} />
+                                    multiline numberOfLines={3} placeholderTextColor="#9ca3af" />
                             </View>
+
+                            {/* Joining Date */}
+                            <View style={styles.fieldGroup}>
+                                <Text style={styles.label}>Joining Date</Text>
+                                <TouchableOpacity
+                                    style={styles.input}
+                                    onPress={() => setShowDatePicker(true)}
+                                >
+                                    <Text style={{
+                                        fontSize: 15,
+                                        color: joiningDate ? "#111827" : "#9ca3af"
+                                    }}>
+                                        {joiningDate ? toDateOnly(joiningDate) : "Select joining date (optional)"}
+                                    </Text>
+                                </TouchableOpacity>
+                                {showDatePicker && (
+                                    <DateTimePicker
+                                        value={joiningDate ?? new Date()}
+                                        mode="date"
+                                        display="default"
+                                        maximumDate={new Date()}
+                                        onChange={(event, selectedDate) => {
+                                            setShowDatePicker(false);
+                                            if (event.type === "set" && selectedDate) {
+                                                setJoiningDate(selectedDate);
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </View>
+
 
                             <Text style={styles.sectionDivider}>Login Details</Text>
 
@@ -559,7 +602,7 @@ export default function EmployeesScreen() {
                                 <Text style={styles.label}>Username *</Text>
                                 <TextInput style={styles.input} value={username}
                                     onChangeText={setUsername} placeholder="Login username"
-                                    autoCapitalize="none" />
+                                    autoCapitalize="none" placeholderTextColor="#9ca3af" />
                             </View>
 
                             <View style={styles.fieldGroup}>
@@ -572,6 +615,7 @@ export default function EmployeesScreen() {
                                         onChangeText={setPassword}
                                         placeholder="Login password"
                                         secureTextEntry={!showPassword}
+                                        placeholderTextColor="#9ca3af"
                                     />
 
                                     <TouchableOpacity
@@ -703,7 +747,7 @@ const styles = StyleSheet.create({
 
     fieldGroup: { marginBottom: 14 },
     label: { fontSize: 13, color: "#374151", marginBottom: 6, fontWeight: "600" },
-    input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 12, fontSize: 15, backgroundColor: "#fff" },
+    input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 12, fontSize: 15, backgroundColor: "#fff", color: "#111827" },
     textArea: { height: 70, textAlignVertical: "top" },
 
     dropdownButton: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 12, backgroundColor: "#fff" },
@@ -783,5 +827,6 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 15,
         paddingVertical: 12,
+        color: "#111827",
     },
 });

@@ -83,6 +83,7 @@ export default function LoginScreen({ navigation }: any) {
 							style={styles.passwordInput}
 							value={password}
 							onChangeText={setPassword}
+							
 						/>
 						<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
 							<Ionicons
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 22,
 		fontSize: 18,
 		marginBottom: 18,
+		color: "#000000",
 	},
 	passwordContainer: {
 		height: 50,
@@ -162,6 +164,7 @@ const styles = StyleSheet.create({
 	passwordInput: {
 		flex: 1,
 		fontSize: 18,
+		color: "#000000",
 	},
 	button: {
 		width: 180,
