@@ -28,4 +28,7 @@ public interface IAttendanceService
     GetAttendanceSummaryAsync(
         int year,
         int month);
+    Task<List<HrTeamAttendanceStatusDto>> GetTeamAttendanceStatusAsync(string hrUsername);
+Task<object> HrSignInEmployeeAsync(HrSignInRequestDto request);
+Task<object> HrSignOutEmployeeAsync(HrSignOutRequestDto request);
 }
