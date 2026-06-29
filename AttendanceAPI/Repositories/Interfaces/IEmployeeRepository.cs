@@ -35,9 +35,9 @@ public interface IEmployeeRepository
     Task<EmployeeMaster?>
         GetEmployeeByCodeAsync(
             string employeeCode);
-
+    Task<int?> GetRoleIdByUsernameAsync(string username);
     Task<List<EmployeeMaster>>
-        GetActiveEmployeesAsync();
+        GetActiveEmployeesAsync(int requestRoleId);
 
     Task<List<EmployeeMaster>>
         SearchEmployeesAsync(

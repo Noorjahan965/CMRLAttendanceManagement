@@ -72,4 +72,10 @@ public class EmployeeMaster
 
     [ForeignKey(nameof(ShiftId))]
     public ShiftMaster? Shift { get; set; }
+
+    [NotMapped]
+    public string? Username { get; set; }
+
+    [NotMapped]
+    public string? RoleName { get; set; }
 }

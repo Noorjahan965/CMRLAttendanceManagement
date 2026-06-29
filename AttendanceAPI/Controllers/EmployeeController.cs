@@ -63,14 +63,24 @@ public async Task<IActionResult>
         });
 }
 
-    [HttpGet]
-    public async Task<IActionResult> GetEmployees()
-    {    _logger.LogInformation(
-        "Employee list requested");
-        var employees = await _service.GetActiveEmployeesAsync();
-        _logger.LogInformation("{Count} employees returned",employees.Count);
-        return Ok(employees);
-    }
+   [HttpGet]
+public async Task<IActionResult> GetEmployees(
+    [FromQuery] string username)
+{
+    _logger.LogInformation(
+        "Employee list requested by {Username}",
+        username);
+
+    var employees = await _service
+        .GetActiveEmployeesAsync(username);
+
+    _logger.LogInformation(
+        "{Count} employees returned for {Username}",
+        employees.Count,
+        username);
+
+    return Ok(employees);
+}
 
     [HttpPost]
     public async Task<IActionResult> CreateEmployee([FromBody] EmployeeCreateRequestDto request)
