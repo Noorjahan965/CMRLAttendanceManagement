@@ -45,12 +45,18 @@ public class EmployeeService : IEmployeeService
         await _repository.SaveAsync();
         return true;
     }
+    public async Task<List<EmployeeResponseDto>>
+GetActiveEmployeesAsync(string username)
+{
+    var roleId = await _repository
+        .GetRoleIdByUsernameAsync(username);
 
-    public async Task<List<EmployeeResponseDto>> GetActiveEmployeesAsync()
-    {
-        var employees = await _repository.GetActiveEmployeesAsync();
-        return employees.Select(MapToDto).ToList();
-    }
+    var employees = await _repository
+        .GetActiveEmployeesAsync(roleId ?? 4);
+
+    return employees.Select(MapToDto).ToList();
+}
+   
 
     public async Task<(bool Success, string Message, EmployeeResponseDto? Employee)>
         CreateEmployeeAsync(EmployeeCreateRequestDto request)
@@ -134,6 +140,8 @@ public class EmployeeService : IEmployeeService
             : _dataProtection.Decrypt(e.Address),
         JoiningDate     = e.JoiningDate,
         IsActive        = e.IsActive,
+        Username = e.Username,
+        RoleName = e.RoleName
     };
 
     public async Task<List<EmployeeResponseDto>> SearchEmployeesAsync(string keyword)

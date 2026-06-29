@@ -52,7 +52,11 @@ public class EmployeeRepository : IEmployeeRepository
         await _context.SaveChangesAsync();
         return employee;
     }
-
+    private async Task EnsureOpenAsync()
+{
+    if (_connection.State != System.Data.ConnectionState.Open)
+        await _connection.OpenAsync();
+}
     public async Task<UserLogin>
     CreateUserLoginAsync(UserLogin userLogin)
     {
@@ -126,73 +130,104 @@ public class EmployeeRepository : IEmployeeRepository
     }
 
     
-    public async Task<List<EmployeeMaster>>
-GetActiveEmployeesAsync()
+public async Task<List<EmployeeMaster>>
+GetActiveEmployeesAsync(int requesterRoleId)
 {
     const string sql = """
-        SELECT
-            e.employee_id       AS EmployeeId,
-            e.employee_code     AS EmployeeCode,
-            e.employee_name     AS EmployeeName,
-            e.mobile_no         AS MobileNo,
-            e.email             AS Email,
-            e.address           AS Address,
-            e.joining_date      AS JoiningDate,
-            e.is_active         AS IsActive,
-            e.gender_id         AS GenderId,
-            e.community_id      AS CommunityId,
-            e.designation_id    AS DesignationId,
-            e.department_id     AS DepartmentId,
-            e.location_id       AS LocationId,
-            e.shift_id          AS ShiftId,
-            g.gender_name       AS GenderName,
-            c.community_name    AS CommunityName,
-            d.designation_name  AS DesignationName,
-            dep.department_name AS DepartmentName,
-            l.location_name     AS LocationName,
-            s.shift_name        AS ShiftName
-        FROM employee_master e
-        LEFT JOIN gender_master      g   ON e.gender_id      = g.gender_id
-        LEFT JOIN community_master   c   ON e.community_id   = c.community_id
-        LEFT JOIN designation_master d   ON e.designation_id = d.designation_id
-        LEFT JOIN department_master  dep ON e.department_id  = dep.department_id
-        LEFT JOIN location_master    l   ON e.location_id    = l.location_id
-        LEFT JOIN shift_master       s   ON e.shift_id       = s.shift_id
-        WHERE e.is_active = 1
-        """;
+    SELECT
+        e.employee_id       AS EmployeeId,
+        e.employee_code     AS EmployeeCode,
+        e.employee_name     AS EmployeeName,
+        e.mobile_no         AS MobileNo,
+        e.email             AS Email,
+        e.address           AS Address,
+        e.joining_date      AS JoiningDate,
+        e.is_active         AS IsActive,
+        e.gender_id         AS GenderId,
+        e.community_id      AS CommunityId,
+        e.designation_id    AS DesignationId,
+        e.department_id     AS DepartmentId,
+        e.location_id       AS LocationId,
+        e.shift_id          AS ShiftId,
+        u.username          AS Username,
+        r.role_name         AS RoleName,
+        g.gender_name       AS GenderName,
+        c.community_name    AS CommunityName,
+        d.designation_name  AS DesignationName,
+        dep.department_name AS DepartmentName,
+        l.location_name     AS LocationName,
+        s.shift_name        AS ShiftName
+    FROM employee_master e
+    INNER JOIN user_login u  ON e.employee_id = u.employee_id
+    INNER JOIN role_master r ON u.role_id     = r.role_id
+    LEFT JOIN gender_master      g   ON e.gender_id      = g.gender_id
+    LEFT JOIN community_master   c   ON e.community_id   = c.community_id
+    LEFT JOIN designation_master d   ON e.designation_id = d.designation_id
+    LEFT JOIN department_master  dep ON e.department_id  = dep.department_id
+    LEFT JOIN location_master    l   ON e.location_id    = l.location_id
+    LEFT JOIN shift_master       s   ON e.shift_id       = s.shift_id
+    WHERE e.is_active = 1
+      AND (
+            (@RequesterRoleId = 1)
+            OR (@RequesterRoleId = 2 AND (u.role_id = 3 OR u.role_id = 4))
+            OR (@RequesterRoleId = 3 AND u.role_id = 4)
+          )
+    ORDER BY e.employee_name
+    """;
 
-    var rows = await _connection.QueryAsync<dynamic>(sql);
+    var rows = await _connection.QueryAsync<dynamic>(
+        sql, new { RequesterRoleId = requesterRoleId });
 
     return rows.Select(row => new EmployeeMaster
     {
-       EmployeeId    = (int)row.EmployeeId,
-EmployeeCode  = (string?)row.EmployeeCode,
-EmployeeName  = (string?)row.EmployeeName,
-MobileNo      = (string?)row.MobileNo,
-Email         = (string?)row.Email,
-Address       = (string?)row.Address,
-JoiningDate   = row.JoiningDate == null ? null
-    : DateOnly.FromDateTime((DateTime)row.JoiningDate),
-IsActive      = (bool)row.IsActive,
-GenderId      = row.GenderId == null ? null : (int?)row.GenderId,
-CommunityId   = row.CommunityId == null ? null : (int?)row.CommunityId,
-DesignationId = row.DesignationId == null ? null : (int?)row.DesignationId,
-DepartmentId  = row.DepartmentId == null ? null : (int?)row.DepartmentId,
-LocationId    = (int)row.LocationId,
-ShiftId       = (int)row.ShiftId,
-Gender        = row.GenderName == null ? null
-    : new GenderMaster { GenderName = (string)row.GenderName },
-Community     = row.CommunityName == null ? null
-    : new CommunityMaster { CommunityName = (string)row.CommunityName },
-Designation   = row.DesignationName == null ? null
-    : new DesignationMaster { DesignationName = (string)row.DesignationName },
-Department    = row.DepartmentName == null ? null
-    : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
-Location      = row.LocationName == null ? null
-    : new LocationMaster { LocationName = (string)row.LocationName },
-Shift         = row.ShiftName == null ? null
-    : new ShiftMaster { ShiftName = (string)row.ShiftName }
+        EmployeeId    = (int)row.EmployeeId,
+        EmployeeCode  = (string?)row.EmployeeCode,
+        EmployeeName  = (string?)row.EmployeeName,
+        MobileNo      = (string?)row.MobileNo,
+        Email         = (string?)row.Email,
+        Address       = (string?)row.Address,
+        JoiningDate   = row.JoiningDate == null ? null
+            : DateOnly.FromDateTime((DateTime)row.JoiningDate),
+        IsActive      = (bool)row.IsActive,
+        GenderId      = row.GenderId == null ? null : (int?)row.GenderId,
+        CommunityId   = row.CommunityId == null ? null : (int?)row.CommunityId,
+        DesignationId = row.DesignationId == null ? null : (int?)row.DesignationId,
+        DepartmentId  = row.DepartmentId == null ? null : (int?)row.DepartmentId,
+        LocationId    = (int)row.LocationId,
+        ShiftId       = (int)row.ShiftId,
+        Gender        = row.GenderName == null ? null
+            : new GenderMaster { GenderName = (string)row.GenderName },
+        Community     = row.CommunityName == null ? null
+            : new CommunityMaster { CommunityName = (string)row.CommunityName },
+        Designation   = row.DesignationName == null ? null
+            : new DesignationMaster { DesignationName = (string)row.DesignationName },
+        Department    = row.DepartmentName == null ? null
+            : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
+        Location      = row.LocationName == null ? null
+            : new LocationMaster { LocationName = (string)row.LocationName },
+        Shift         = row.ShiftName == null ? null
+            : new ShiftMaster { ShiftName = (string)row.ShiftName },
+        Username  = (string?)row.Username,
+        RoleName  = (string?)row.RoleName,
     }).ToList();
+}
+public async Task<int?>
+GetRoleIdByUsernameAsync(string username)
+{
+    const string sql = """
+        SELECT role_id AS RoleId
+        FROM user_login
+        WHERE username = @Username
+          AND is_active = 1
+        """;
+
+    await EnsureOpenAsync();
+
+    var result = await _connection
+        .QueryFirstOrDefaultAsync<dynamic>(
+            sql, new { Username = username });
+
+    return result == null ? null : (int?)result.RoleId;
 }
 
 public async Task<List<EmployeeMaster>>
