@@ -123,6 +123,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+builder.Services.AddScoped<EmailService>();
 var app = builder.Build();
 
 app.UseSwagger();
