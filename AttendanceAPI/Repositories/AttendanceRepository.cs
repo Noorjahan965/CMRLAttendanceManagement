@@ -133,73 +133,83 @@ public class AttendanceRepository : IAttendanceRepository
         return result.ToList();
     }
 
-    public async Task<List<AttendanceMaster>>
-    GetAttendanceHistoryAsync(int year, int month)
+   public async Task<List<AttendanceMaster>>
+GetAttendanceHistoryAsync()
+{
+    const string sql = """
+        SELECT
+            a.attendance_id     AS AttendanceId,
+            a.employee_id       AS EmployeeId,
+            a.attendance_date   AS AttendanceDate,
+            a.attendance_status AS AttendanceStatus,
+            a.sign_in_time      AS SignInTime,
+            a.sign_out_time     AS SignOutTime,
+            e.employee_name     AS EmployeeName
+        FROM attendance_master a
+        INNER JOIN employee_master e
+            ON a.employee_id = e.employee_id
+        ORDER BY a.attendance_date DESC
+        """;
+
+    await EnsureOpenAsync();
+
+    var result = await _connection
+        .QueryAsync<AttendanceMaster, EmployeeMaster, AttendanceMaster>(
+            sql,
+            (attendance, employee) =>
+            {
+                attendance.Employee = employee;
+                return attendance;
+            },
+            splitOn: "EmployeeName");
+
+    return result.ToList();
+}
+public async Task<List<AttendanceMaster>>
+GetAttendanceHistoryAsync(int year, int month)
+{
+    const string sql = """
+        SELECT
+            a.attendance_id     AS AttendanceId,
+            a.employee_id       AS EmployeeId,
+            a.attendance_date   AS AttendanceDate,
+            a.attendance_status AS AttendanceStatus,
+            a.sign_in_time      AS SignInTime,
+            a.sign_out_time     AS SignOutTime,
+            e.employee_name     AS EmployeeName,
+            e.joining_date      AS JoiningDateRaw
+        FROM attendance_master a
+        INNER JOIN employee_master e
+            ON a.employee_id = e.employee_id
+        WHERE YEAR(a.attendance_date)  = @Year
+          AND MONTH(a.attendance_date) = @Month
+        """;
+
+    await EnsureOpenAsync();
+
+    var rows = await _connection.QueryAsync<dynamic>(
+        sql, new { Year = year, Month = month });
+
+    return rows.Select(row => new AttendanceMaster
     {
-        const string sql = """
-            SELECT
-                a.attendance_id     AS AttendanceId,
-                a.employee_id       AS EmployeeId,
-                a.attendance_date   AS AttendanceDate,
-                a.attendance_status AS AttendanceStatus,
-                a.sign_in_time      AS SignInTime,
-                a.sign_out_time     AS SignOutTime,
-                e.employee_name     AS EmployeeName
-            FROM attendance_master a
-            INNER JOIN employee_master e
-                ON a.employee_id = e.employee_id
-            WHERE YEAR(a.attendance_date)  = @Year
-              AND MONTH(a.attendance_date) = @Month
-            """;
-
-        await EnsureOpenAsync();
-
-        var result = await _connection
-            .QueryAsync<AttendanceMaster, EmployeeMaster, AttendanceMaster>(
-                sql,
-                (attendance, employee) =>
-                {
-                    attendance.Employee = employee;
-                    return attendance;
-                },
-                new { Year = year, Month = month },
-                splitOn: "EmployeeName");
-
-        return result.ToList();
-    }
-
-    public async Task<List<AttendanceMaster>>
-    GetAttendanceHistoryAsync()
-    {
-        const string sql = """
-            SELECT
-                a.attendance_id     AS AttendanceId,
-                a.employee_id       AS EmployeeId,
-                a.attendance_date   AS AttendanceDate,
-                a.attendance_status AS AttendanceStatus,
-                a.sign_in_time      AS SignInTime,
-                a.sign_out_time     AS SignOutTime,
-                e.employee_name     AS EmployeeName
-            FROM attendance_master a
-            INNER JOIN employee_master e
-                ON a.employee_id = e.employee_id
-            ORDER BY a.attendance_date DESC
-            """;
-
-        await EnsureOpenAsync();
-
-        var result = await _connection
-            .QueryAsync<AttendanceMaster, EmployeeMaster, AttendanceMaster>(
-                sql,
-                (attendance, employee) =>
-                {
-                    attendance.Employee = employee;
-                    return attendance;
-                },
-                splitOn: "EmployeeName");
-
-        return result.ToList();
-    }
+        AttendanceId     = (int)row.AttendanceId,
+        EmployeeId       = (int)row.EmployeeId,
+        AttendanceDate   = (DateTime)row.AttendanceDate,
+        AttendanceStatus = (string)row.AttendanceStatus,
+        SignInTime       = row.SignInTime == null
+            ? null : (DateTime?)row.SignInTime,
+        SignOutTime      = row.SignOutTime == null
+            ? null : (DateTime?)row.SignOutTime,
+        Employee = new EmployeeMaster
+        {
+            EmployeeName = (string?)row.EmployeeName,
+            JoiningDate  = row.JoiningDateRaw == null
+                ? null
+                : DateOnly.FromDateTime((DateTime)row.JoiningDateRaw)
+        }
+    }).ToList();
+}
+   
 
     public async Task<List<LowAttendanceDto>>
     GetLowAttendanceEmployeesAsync(string username)
