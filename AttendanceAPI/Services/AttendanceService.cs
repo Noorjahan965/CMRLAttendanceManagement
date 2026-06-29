@@ -381,117 +381,91 @@ public class AttendanceService : IAttendanceService
             attendanceId = attendance.AttendanceId
         };
     }
-    public async Task<List<EmployeeAttendanceSummaryDto>>
-    GetAttendanceSummaryAsync(
-        int year,
-        int month)
-    {
-        var records =
-            await _repository
-                .GetAttendanceHistoryAsync(
-                    year,
-                    month);
+   public async Task<List<EmployeeAttendanceSummaryDto>>
+GetAttendanceSummaryAsync(int year, int month)
+{
+    var records = await _repository
+        .GetAttendanceHistoryAsync(year, month);
 
-        var result =
-            records
-            .GroupBy(x => new
-            {
-                x.EmployeeId,
-                EmployeeName = x.Employee!.EmployeeName
-            })
-            .Select(g =>
-            {
-                int presentDays =
-                    g.Count(x =>
-                        x.AttendanceStatus == "Present");
+    var today = DateTime.Today;
 
-                int halfDays =
-                    g.Count(x =>
-                        x.AttendanceStatus == "Half Day");
+    var result = records
+        .GroupBy(x => new
+        {
+            x.EmployeeId,
+            EmployeeName = x.Employee!.EmployeeName,
+            JoiningDate  = x.Employee.JoiningDate
+        })
+        .Select(g =>
+        {
+            int daysInMonth = DateTime.DaysInMonth(year, month);
 
-                int daysInMonth =
-                    DateTime.DaysInMonth(
-                        year,
-                        month);
+            // Convert joining date to DateTime for comparison
+            DateTime? joiningDate = g.Key.JoiningDate.HasValue
+                ? g.Key.JoiningDate.Value
+                    .ToDateTime(TimeOnly.MinValue).Date
+                : null;
 
-                int workingDays = Enumerable
-                    .Range(1, daysInMonth)
-                    .Select(d =>
-                        new DateTime(
-                            year,
-                            month,
-                            d))
-                    .Count(d =>
-                        d.DayOfWeek != DayOfWeek.Saturday &&
-                        d.DayOfWeek != DayOfWeek.Sunday);
+            // Working dates — exclude weekends, future dates,
+            // and dates before joining date
+            var workingDates = Enumerable
+                .Range(1, daysInMonth)
+                .Select(d => new DateTime(year, month, d))
+                .Where(d =>
+                    d.DayOfWeek != DayOfWeek.Saturday &&
+                    d.DayOfWeek != DayOfWeek.Sunday &&
+                    d.Date <= today &&
+                    (!joiningDate.HasValue || d.Date >= joiningDate.Value))
+                .ToList();
 
-                int absentDays =
-                    workingDays -
-                    presentDays -
-                    halfDays;
+            int workingDays = workingDates.Count;
 
+            int presentDays = g.Count(x =>
+                x.AttendanceStatus == "Present");
 
-                int percentage =
-    (int)Math.Round(
-        ((presentDays + (halfDays * 0.5))
-         / workingDays) * 100);
-                var workingDates = Enumerable
-        .Range(1, daysInMonth)
-        .Select(day => new DateTime(year, month, day))
-        .Where(d =>
-            d.DayOfWeek != DayOfWeek.Saturday &&
-            d.DayOfWeek != DayOfWeek.Sunday)
-        .ToList();
+            int halfDays = g.Count(x =>
+                x.AttendanceStatus == "Half Day");
 
-                var attendanceDates = g
+            int absentDays = Math.Max(
+                0, workingDays - presentDays - halfDays);
+
+            int percentage = workingDays == 0
+                ? 0
+                : (int)Math.Round(
+                    ((presentDays + (halfDays * 0.5))
+                     / workingDays) * 100);
+
+            var attendanceDates = g
                 .Select(x => x.AttendanceDate.Date)
                 .ToHashSet();
 
-                var absentDates = workingDates
+            // Absent dates — only working days with no attendance record
+            var absentDates = workingDates
                 .Where(d => !attendanceDates.Contains(d.Date))
                 .Select(d => d.ToString("yyyy-MM-dd"))
                 .ToList();
 
-                return new EmployeeAttendanceSummaryDto
-                {
-                    EmployeeId =
-                        g.Key.EmployeeId,
+            return new EmployeeAttendanceSummaryDto
+            {
+                EmployeeId           = g.Key.EmployeeId,
+                EmployeeName         = g.Key.EmployeeName ?? "",
+                Month                = month,
+                Year                 = year,
+                AttendancePercentage = percentage,
+                PresentDays          = presentDays,
+                HalfDays             = halfDays,
+                AbsentDays           = absentDays,
+                AbsentDates          = absentDates,
+                HalfDayDates         = g
+                    .Where(x => x.AttendanceStatus == "Half Day")
+                    .Select(x => x.AttendanceDate.ToString("yyyy-MM-dd"))
+                    .ToList()
+            };
+        })
+        .ToList();
 
-                    EmployeeName =
-                        g.Key.EmployeeName ?? "",
-
-                    Month = month,
-
-                    Year = year,
-
-                    AttendancePercentage =
-                        percentage,
-
-                    PresentDays =
-                        presentDays,
-
-                    HalfDays =
-                        halfDays,
-
-                    AbsentDays =
-                        absentDays,
-
-                    AbsentDates = absentDates,
-
-                    HalfDayDates =
-        g.Where(x =>
-            x.AttendanceStatus ==
-            "Half Day")
-         .Select(x =>
-            x.AttendanceDate
-             .ToString("yyyy-MM-dd"))
-         .ToList()
-                };
-            })
-            .ToList();
-
-        return result;
-    }
+    return result;
+}
     public async Task<object>
     UpdateAttendanceStatusAsync(
         AttendanceStatusUpdateRequestDto request)
