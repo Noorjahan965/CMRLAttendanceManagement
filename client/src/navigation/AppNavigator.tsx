@@ -8,7 +8,7 @@ import HistoryScreen from "../screens/HistoryScreen";
 import EmployeesScreen from "../screens/HR/EmployeesScreen";
 import LowAttendanceScreen from "../screens/HR/LowAttendanceScreen";
 import AttendanceDetailScreen from "../screens/HR/AttendanceDetailScreen"; 
-
+import ForgotPasswordScreen from "@/screens/ForgotPasswordScreen";
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -18,6 +18,11 @@ export default function AppNavigator() {
                 <Stack.Screen name="Login"
                     component={LoginScreen}
                     options={{ headerShown: false }} />
+                <Stack.Screen
+                    name="ForgotPassword"
+                    component={ForgotPasswordScreen}
+                    options={{ headerShown: false }}
+                    />
                 <Stack.Screen name="Home"
                     component={HomeScreen}
                     options={{ headerShown: false }} />

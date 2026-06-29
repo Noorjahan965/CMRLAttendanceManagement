@@ -9,6 +9,7 @@ import {
 	Image,
 	ImageBackground,
 } from "react-native";
+import ForgotPassword from "../components/ForgotPassword"; // Change the path if needed
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -98,6 +99,10 @@ export default function LoginScreen({ navigation }: any) {
 					<TouchableOpacity style={styles.button} onPress={handleLogin}>
 						<Text style={styles.buttonText}>Login</Text>
 					</TouchableOpacity>
+					<View style={styles.passwordForget}>
+  <ForgotPassword/>
+</View>
+					
 				</View>
 			</View>
 		</ImageBackground>
@@ -174,7 +179,7 @@ const styles = StyleSheet.create({
 		alignSelf: "center",
 		justifyContent: "center",
 		alignItems: "center",
-		marginTop: 40,
+		marginTop: 30,
 	},
 	buttonText: {
 		color: "#fff",
@@ -187,4 +192,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		padding: 25,
 	},
+	passwordForget: {
+  alignItems: "center",
+  marginTop: 20,
+}
+	
 });
