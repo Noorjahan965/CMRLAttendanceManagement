@@ -10,9 +10,12 @@ public class EmployeeService : IEmployeeService
 {
     private readonly IEmployeeRepository _repository;
     private readonly IAuditLogService _auditLogService;
-        private readonly DataProtectionService _dataProtection;
+    private readonly DataProtectionService _dataProtection;
+
     public EmployeeService(
-        IEmployeeRepository repository, IAuditLogService auditLogService,DataProtectionService dataProtection)
+        IEmployeeRepository repository,
+        IAuditLogService auditLogService,
+        DataProtectionService dataProtection)
     {
         _repository = repository;
         _auditLogService = auditLogService;
@@ -29,34 +32,33 @@ public class EmployeeService : IEmployeeService
         var employee = await _repository.GetEmployeeByIdAsync(employeeId);
         if (employee == null) return false;
 
-        employee.CommunityId = request.CommunityId;
+        employee.CommunityId   = request.CommunityId;
         employee.DesignationId = request.DesignationId;
-        employee.DepartmentId = request.DepartmentId;
-        employee.LocationId = request.LocationId;
-        employee.ShiftId = request.ShiftId;
-        employee.MobileNo =string.IsNullOrWhiteSpace(request.MobileNo)? null: _dataProtection.Encrypt(request.MobileNo);
-
-        employee.Email= string.IsNullOrWhiteSpace(request.Email)? null: _dataProtection.Encrypt(request.Email);
-
-        employee.Address =string.IsNullOrWhiteSpace(request.Address)? null: _dataProtection.Encrypt(request.Address);
-        employee.JoiningDate = request.JoiningDate;
-        employee.IsActive = request.IsActive;
+        employee.DepartmentId  = request.DepartmentId;
+        employee.LocationId    = request.LocationId;
+        employee.ShiftId       = request.ShiftId;
+        employee.MobileNo      = string.IsNullOrWhiteSpace(request.MobileNo) ? null : _dataProtection.Encrypt(request.MobileNo);
+        employee.Email         = string.IsNullOrWhiteSpace(request.Email) ? null : _dataProtection.Encrypt(request.Email);
+        employee.Address       = string.IsNullOrWhiteSpace(request.Address) ? null : _dataProtection.Encrypt(request.Address);
+        employee.JoiningDate   = request.JoiningDate;
+        employee.IsActive      = request.IsActive;
 
         await _repository.SaveAsync();
         return true;
     }
-    public async Task<List<EmployeeResponseDto>>
-GetActiveEmployeesAsync(string username)
-{
-    var roleId = await _repository
-        .GetRoleIdByUsernameAsync(username);
 
-    var employees = await _repository
-        .GetActiveEmployeesAsync(roleId ?? 4);
+    public async Task<List<EmployeeResponseDto>> GetActiveEmployeesAsync(string username)
+    {
+        var roleId = await _repository.GetRoleIdByUsernameAsync(username);
+        var employees = await _repository.GetActiveEmployeesAsync(roleId ?? 4);
+        return employees.Select(MapToDto).ToList();
+    }
 
-    return employees.Select(MapToDto).ToList();
-}
-   
+    public async Task<List<EmployeeResponseDto>> GetEmployeesByCodeAsync(string employeeCode)
+    {
+        var employees = await _repository.GetEmployeesByCodeAsync(employeeCode);
+        return employees.Select(MapToDto).ToList();
+    }
 
     public async Task<(bool Success, string Message, EmployeeResponseDto? Employee)>
         CreateEmployeeAsync(EmployeeCreateRequestDto request)
@@ -77,9 +79,9 @@ GetActiveEmployeesAsync(string username)
             DepartmentId  = request.DepartmentId,
             LocationId    = request.LocationId,
             ShiftId       = request.ShiftId,
-            MobileNo =string.IsNullOrWhiteSpace(request.MobileNo)? null: _dataProtection.Encrypt(request.MobileNo),
-            Email =string.IsNullOrWhiteSpace(request.Email)? null: _dataProtection.Encrypt(request.Email),
-            Address =string.IsNullOrWhiteSpace(request.Address)? null: _dataProtection.Encrypt(request.Address),
+            MobileNo      = string.IsNullOrWhiteSpace(request.MobileNo) ? null : _dataProtection.Encrypt(request.MobileNo),
+            Email         = string.IsNullOrWhiteSpace(request.Email) ? null : _dataProtection.Encrypt(request.Email),
+            Address       = string.IsNullOrWhiteSpace(request.Address) ? null : _dataProtection.Encrypt(request.Address),
             JoiningDate   = request.JoiningDate,
             IsActive      = true,
             CreatedAt     = DateTime.Now,
@@ -113,6 +115,12 @@ GetActiveEmployeesAsync(string username)
         return (true, "Employee created successfully", dto);
     }
 
+    public async Task<List<EmployeeResponseDto>> SearchEmployeesAsync(string keyword)
+    {
+        var employees = await _repository.SearchEmployeesAsync(keyword);
+        return employees.Select(MapToDto).ToList();
+    }
+
     private EmployeeResponseDto MapToDto(EmployeeMaster e) => new()
     {
         EmployeeId      = e.EmployeeId,
@@ -124,29 +132,12 @@ GetActiveEmployeesAsync(string username)
         DepartmentName  = e.Department?.DepartmentName,
         LocationName    = e.Location?.LocationName,
         ShiftName       = e.Shift?.ShiftName,
-        MobileNo =
-        string.IsNullOrEmpty(e.MobileNo)
-            ? null
-            : _dataProtection.Decrypt(e.MobileNo),
-
-    Email =
-        string.IsNullOrEmpty(e.Email)
-            ? null
-            : _dataProtection.Decrypt(e.Email),
-
-    Address =
-        string.IsNullOrEmpty(e.Address)
-            ? null
-            : _dataProtection.Decrypt(e.Address),
+        MobileNo        = string.IsNullOrEmpty(e.MobileNo) ? null : _dataProtection.Decrypt(e.MobileNo),
+        Email           = string.IsNullOrEmpty(e.Email) ? null : _dataProtection.Decrypt(e.Email),
+        Address         = string.IsNullOrEmpty(e.Address) ? null : _dataProtection.Decrypt(e.Address),
         JoiningDate     = e.JoiningDate,
         IsActive        = e.IsActive,
-        Username = e.Username,
-        RoleName = e.RoleName
+        Username        = e.Username,
+        RoleName        = e.RoleName
     };
-
-    public async Task<List<EmployeeResponseDto>> SearchEmployeesAsync(string keyword)
-    {
-        var employees = await _repository.SearchEmployeesAsync(keyword);
-        return employees.Select(MapToDto).ToList();
-    }
 }

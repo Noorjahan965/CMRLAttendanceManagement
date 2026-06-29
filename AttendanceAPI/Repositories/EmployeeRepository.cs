@@ -21,64 +21,54 @@ public class EmployeeRepository : IEmployeeRepository
         _connection = connection;
     }
 
-    // ── EF Core (writes + simple reads) ─────────────────────────
-
-    public async Task<EmployeeMaster?>
-    GetEmployeeByIdAsync(int employeeId)
+    private async Task EnsureOpenAsync()
     {
-        return await _context.Employees
-            .FirstOrDefaultAsync(
-                e => e.EmployeeId == employeeId);
+        if (_connection.State != System.Data.ConnectionState.Open)
+            await _connection.OpenAsync();
     }
 
-    public async Task<bool>
-    EmployeeCodeExistsAsync(string employeeCode)
+    public async Task<EmployeeMaster?> GetEmployeeByIdAsync(int employeeId)
+    {
+        return await _context.Employees
+            .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+    }
+
+    public async Task<bool> EmployeeCodeExistsAsync(string employeeCode)
     {
         return await _context.Employees
             .AnyAsync(e => e.EmployeeCode == employeeCode);
     }
 
-    public async Task<bool>
-    UsernameExistsAsync(string username)
+    public async Task<bool> UsernameExistsAsync(string username)
     {
         return await _context.UserLogins
             .AnyAsync(u => u.Username == username);
     }
 
-    public async Task<EmployeeMaster>
-    CreateEmployeeAsync(EmployeeMaster employee)
+    public async Task<EmployeeMaster> CreateEmployeeAsync(EmployeeMaster employee)
     {
         _context.Employees.Add(employee);
         await _context.SaveChangesAsync();
         return employee;
     }
-    private async Task EnsureOpenAsync()
-{
-    if (_connection.State != System.Data.ConnectionState.Open)
-        await _connection.OpenAsync();
-}
-    public async Task<UserLogin>
-    CreateUserLoginAsync(UserLogin userLogin)
+
+    public async Task<UserLogin> CreateUserLoginAsync(UserLogin userLogin)
     {
         _context.UserLogins.Add(userLogin);
         await _context.SaveChangesAsync();
         return userLogin;
     }
 
-    public async Task<UserLogin?>
-    GetUserLoginByEmployeeIdAsync(int employeeId)
+    public async Task<UserLogin?> GetUserLoginByEmployeeIdAsync(int employeeId)
     {
         return await _context.UserLogins
-            .FirstOrDefaultAsync(
-                u => u.EmployeeId == employeeId);
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
     }
 
-    public async Task<EmployeeMaster?>
-    GetEmployeeByCodeAsync(string employeeCode)
+    public async Task<EmployeeMaster?> GetEmployeeByCodeAsync(string employeeCode)
     {
         return await _context.Employees
-            .FirstOrDefaultAsync(
-                e => e.EmployeeCode == employeeCode);
+            .FirstOrDefaultAsync(e => e.EmployeeCode == employeeCode);
     }
 
     public async Task SaveAsync()
@@ -86,10 +76,7 @@ public class EmployeeRepository : IEmployeeRepository
         await _context.SaveChangesAsync();
     }
 
-    // ── Dapper (complex reads) ───────────────────────────────────
-
-    public async Task<EmployeeFormOptionsDto>
-    GetFormOptionsAsync()
+    public async Task<EmployeeFormOptionsDto> GetFormOptionsAsync()
     {
         const string sql = """
             SELECT gender_id AS Id, gender_name AS Name
@@ -114,8 +101,7 @@ public class EmployeeRepository : IEmployeeRepository
             FROM role_master WHERE is_active = 1;
             """;
 
-        using var multi = await _connection
-            .QueryMultipleAsync(sql);
+        using var multi = await _connection.QueryMultipleAsync(sql);
 
         return new EmployeeFormOptionsDto
         {
@@ -129,56 +115,20 @@ public class EmployeeRepository : IEmployeeRepository
         };
     }
 
-    
-public async Task<List<EmployeeMaster>>
-GetActiveEmployeesAsync(int requesterRoleId)
-{
-    const string sql = """
-    SELECT
-        e.employee_id       AS EmployeeId,
-        e.employee_code     AS EmployeeCode,
-        e.employee_name     AS EmployeeName,
-        e.mobile_no         AS MobileNo,
-        e.email             AS Email,
-        e.address           AS Address,
-        e.joining_date      AS JoiningDate,
-        e.is_active         AS IsActive,
-        e.gender_id         AS GenderId,
-        e.community_id      AS CommunityId,
-        e.designation_id    AS DesignationId,
-        e.department_id     AS DepartmentId,
-        e.location_id       AS LocationId,
-        e.shift_id          AS ShiftId,
-        u.username          AS Username,
-        r.role_name         AS RoleName,
-        g.gender_name       AS GenderName,
-        c.community_name    AS CommunityName,
-        d.designation_name  AS DesignationName,
-        dep.department_name AS DepartmentName,
-        l.location_name     AS LocationName,
-        s.shift_name        AS ShiftName
-    FROM employee_master e
-    INNER JOIN user_login u  ON e.employee_id = u.employee_id
-    INNER JOIN role_master r ON u.role_id     = r.role_id
-    LEFT JOIN gender_master      g   ON e.gender_id      = g.gender_id
-    LEFT JOIN community_master   c   ON e.community_id   = c.community_id
-    LEFT JOIN designation_master d   ON e.designation_id = d.designation_id
-    LEFT JOIN department_master  dep ON e.department_id  = dep.department_id
-    LEFT JOIN location_master    l   ON e.location_id    = l.location_id
-    LEFT JOIN shift_master       s   ON e.shift_id       = s.shift_id
-    WHERE e.is_active = 1
-      AND (
-            (@RequesterRoleId = 1)
-            OR (@RequesterRoleId = 2 AND (u.role_id = 3 OR u.role_id = 4))
-            OR (@RequesterRoleId = 3 AND u.role_id = 4)
-          )
-    ORDER BY e.employee_name
-    """;
+    public async Task<int?> GetRoleIdByUsernameAsync(string username)
+    {
+        const string sql = """
+            SELECT role_id AS RoleId
+            FROM user_login
+            WHERE username = @Username AND is_active = 1
+            """;
 
-    var rows = await _connection.QueryAsync<dynamic>(
-        sql, new { RequesterRoleId = requesterRoleId });
+        await EnsureOpenAsync();
+        var result = await _connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { Username = username });
+        return result == null ? null : (int?)result.RoleId;
+    }
 
-    return rows.Select(row => new EmployeeMaster
+    private static EmployeeMaster MapRow(dynamic row) => new EmployeeMaster
     {
         EmployeeId    = (int)row.EmployeeId,
         EmployeeCode  = (string?)row.EmployeeCode,
@@ -186,8 +136,7 @@ GetActiveEmployeesAsync(int requesterRoleId)
         MobileNo      = (string?)row.MobileNo,
         Email         = (string?)row.Email,
         Address       = (string?)row.Address,
-        JoiningDate   = row.JoiningDate == null ? null
-            : DateOnly.FromDateTime((DateTime)row.JoiningDate),
+        JoiningDate   = row.JoiningDate == null ? null : DateOnly.FromDateTime((DateTime)row.JoiningDate),
         IsActive      = (bool)row.IsActive,
         GenderId      = row.GenderId == null ? null : (int?)row.GenderId,
         CommunityId   = row.CommunityId == null ? null : (int?)row.CommunityId,
@@ -195,45 +144,15 @@ GetActiveEmployeesAsync(int requesterRoleId)
         DepartmentId  = row.DepartmentId == null ? null : (int?)row.DepartmentId,
         LocationId    = (int)row.LocationId,
         ShiftId       = (int)row.ShiftId,
-        Gender        = row.GenderName == null ? null
-            : new GenderMaster { GenderName = (string)row.GenderName },
-        Community     = row.CommunityName == null ? null
-            : new CommunityMaster { CommunityName = (string)row.CommunityName },
-        Designation   = row.DesignationName == null ? null
-            : new DesignationMaster { DesignationName = (string)row.DesignationName },
-        Department    = row.DepartmentName == null ? null
-            : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
-        Location      = row.LocationName == null ? null
-            : new LocationMaster { LocationName = (string)row.LocationName },
-        Shift         = row.ShiftName == null ? null
-            : new ShiftMaster { ShiftName = (string)row.ShiftName },
-        Username  = (string?)row.Username,
-        RoleName  = (string?)row.RoleName,
-    }).ToList();
-}
-public async Task<int?>
-GetRoleIdByUsernameAsync(string username)
-{
-    const string sql = """
-        SELECT role_id AS RoleId
-        FROM user_login
-        WHERE username = @Username
-          AND is_active = 1
-        """;
+        Gender        = row.GenderName == null ? null : new GenderMaster { GenderName = (string)row.GenderName },
+        Community     = row.CommunityName == null ? null : new CommunityMaster { CommunityName = (string)row.CommunityName },
+        Designation   = row.DesignationName == null ? null : new DesignationMaster { DesignationName = (string)row.DesignationName },
+        Department    = row.DepartmentName == null ? null : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
+        Location      = row.LocationName == null ? null : new LocationMaster { LocationName = (string)row.LocationName },
+        Shift         = row.ShiftName == null ? null : new ShiftMaster { ShiftName = (string)row.ShiftName }
+    };
 
-    await EnsureOpenAsync();
-
-    var result = await _connection
-        .QueryFirstOrDefaultAsync<dynamic>(
-            sql, new { Username = username });
-
-    return result == null ? null : (int?)result.RoleId;
-}
-
-public async Task<List<EmployeeMaster>>
-SearchEmployeesAsync(string keyword)
-{
-    const string sql = """
+    private const string BaseSelectSql = """
         SELECT
             e.employee_id       AS EmployeeId,
             e.employee_code     AS EmployeeCode,
@@ -262,42 +181,92 @@ SearchEmployeesAsync(string keyword)
         LEFT JOIN department_master  dep ON e.department_id  = dep.department_id
         LEFT JOIN location_master    l   ON e.location_id    = l.location_id
         LEFT JOIN shift_master       s   ON e.shift_id       = s.shift_id
-        WHERE e.is_active = 1
-          AND e.employee_name LIKE @Keyword
         """;
 
-    var rows = await _connection.QueryAsync<dynamic>(
-        sql, new { Keyword = $"%{keyword}%" });
-
-    return rows.Select(row => new EmployeeMaster
+    public async Task<List<EmployeeMaster>> GetActiveEmployeesAsync(int requesterRoleId)
     {
-       EmployeeId    = (int)row.EmployeeId,
-EmployeeCode  = (string?)row.EmployeeCode,
-EmployeeName  = (string?)row.EmployeeName,
-MobileNo      = (string?)row.MobileNo,
-Email         = (string?)row.Email,
-Address       = (string?)row.Address,
-JoiningDate   = row.JoiningDate == null ? null
-    : DateOnly.FromDateTime((DateTime)row.JoiningDate),
-IsActive      = (bool)row.IsActive,
-GenderId      = row.GenderId == null ? null : (int?)row.GenderId,
-CommunityId   = row.CommunityId == null ? null : (int?)row.CommunityId,
-DesignationId = row.DesignationId == null ? null : (int?)row.DesignationId,
-DepartmentId  = row.DepartmentId == null ? null : (int?)row.DepartmentId,
-LocationId    = (int)row.LocationId,
-ShiftId       = (int)row.ShiftId,
-Gender        = row.GenderName == null ? null
-    : new GenderMaster { GenderName = (string)row.GenderName },
-Community     = row.CommunityName == null ? null
-    : new CommunityMaster { CommunityName = (string)row.CommunityName },
-Designation   = row.DesignationName == null ? null
-    : new DesignationMaster { DesignationName = (string)row.DesignationName },
-Department    = row.DepartmentName == null ? null
-    : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
-Location      = row.LocationName == null ? null
-    : new LocationMaster { LocationName = (string)row.LocationName },
-Shift         = row.ShiftName == null ? null
-    : new ShiftMaster { ShiftName = (string)row.ShiftName }
-    }).ToList();
-}}
-    
+        const string sql = """
+            SELECT
+                e.employee_id       AS EmployeeId,
+                e.employee_code     AS EmployeeCode,
+                e.employee_name     AS EmployeeName,
+                e.mobile_no         AS MobileNo,
+                e.email             AS Email,
+                e.address           AS Address,
+                e.joining_date      AS JoiningDate,
+                e.is_active         AS IsActive,
+                e.gender_id         AS GenderId,
+                e.community_id      AS CommunityId,
+                e.designation_id    AS DesignationId,
+                e.department_id     AS DepartmentId,
+                e.location_id       AS LocationId,
+                e.shift_id          AS ShiftId,
+                u.username          AS Username,
+                r.role_name         AS RoleName,
+                g.gender_name       AS GenderName,
+                c.community_name    AS CommunityName,
+                d.designation_name  AS DesignationName,
+                dep.department_name AS DepartmentName,
+                l.location_name     AS LocationName,
+                s.shift_name        AS ShiftName
+            FROM employee_master e
+            INNER JOIN user_login u  ON e.employee_id = u.employee_id
+            INNER JOIN role_master r ON u.role_id     = r.role_id
+            LEFT JOIN gender_master      g   ON e.gender_id      = g.gender_id
+            LEFT JOIN community_master   c   ON e.community_id   = c.community_id
+            LEFT JOIN designation_master d   ON e.designation_id = d.designation_id
+            LEFT JOIN department_master  dep ON e.department_id  = dep.department_id
+            LEFT JOIN location_master    l   ON e.location_id    = l.location_id
+            LEFT JOIN shift_master       s   ON e.shift_id       = s.shift_id
+            WHERE e.is_active = 1
+              AND (
+                    (@RequesterRoleId = 1)
+                    OR (@RequesterRoleId = 2 AND (u.role_id = 3 OR u.role_id = 4))
+                    OR (@RequesterRoleId = 3 AND u.role_id = 4)
+                  )
+            ORDER BY e.employee_name
+            """;
+
+        var rows = await _connection.QueryAsync<dynamic>(sql, new { RequesterRoleId = requesterRoleId });
+
+        return rows.Select(row => new EmployeeMaster
+        {
+            EmployeeId    = (int)row.EmployeeId,
+            EmployeeCode  = (string?)row.EmployeeCode,
+            EmployeeName  = (string?)row.EmployeeName,
+            MobileNo      = (string?)row.MobileNo,
+            Email         = (string?)row.Email,
+            Address       = (string?)row.Address,
+            JoiningDate   = row.JoiningDate == null ? null : DateOnly.FromDateTime((DateTime)row.JoiningDate),
+            IsActive      = (bool)row.IsActive,
+            GenderId      = row.GenderId == null ? null : (int?)row.GenderId,
+            CommunityId   = row.CommunityId == null ? null : (int?)row.CommunityId,
+            DesignationId = row.DesignationId == null ? null : (int?)row.DesignationId,
+            DepartmentId  = row.DepartmentId == null ? null : (int?)row.DepartmentId,
+            LocationId    = (int)row.LocationId,
+            ShiftId       = (int)row.ShiftId,
+            Username      = (string?)row.Username,
+            RoleName      = (string?)row.RoleName,
+            Gender        = row.GenderName == null ? null : new GenderMaster { GenderName = (string)row.GenderName },
+            Community     = row.CommunityName == null ? null : new CommunityMaster { CommunityName = (string)row.CommunityName },
+            Designation   = row.DesignationName == null ? null : new DesignationMaster { DesignationName = (string)row.DesignationName },
+            Department    = row.DepartmentName == null ? null : new DepartmentMaster { DepartmentName = (string)row.DepartmentName },
+            Location      = row.LocationName == null ? null : new LocationMaster { LocationName = (string)row.LocationName },
+            Shift         = row.ShiftName == null ? null : new ShiftMaster { ShiftName = (string)row.ShiftName }
+        }).ToList();
+    }
+
+    public async Task<List<EmployeeMaster>> GetEmployeesByCodeAsync(string employeeCode)
+    {
+        var sql = BaseSelectSql + " WHERE e.employee_code = @EmployeeCode";
+        var rows = await _connection.QueryAsync<dynamic>(sql, new { EmployeeCode = employeeCode });
+        return rows.Select(MapRow).ToList();
+    }
+
+    public async Task<List<EmployeeMaster>> SearchEmployeesAsync(string keyword)
+    {
+        var sql = BaseSelectSql + " WHERE e.is_active = 1 AND e.employee_name LIKE @Keyword";
+        var rows = await _connection.QueryAsync<dynamic>(sql, new { Keyword = $"%{keyword}%" });
+        return rows.Select(MapRow).ToList();
+    }
+}
