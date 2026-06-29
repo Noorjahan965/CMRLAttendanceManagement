@@ -18,6 +18,7 @@ public class EmployeeCreateRequestDto
     public int? CommunityId { get; set; }
     public int? DesignationId { get; set; }
     public int? DepartmentId { get; set; }
+    public string? RoleName { get; set; }
 
     [Required]
     public int LocationId { get; set; }
@@ -65,4 +66,5 @@ public class EmployeeResponseDto
     public DateOnly? JoiningDate { get; set; }
     public bool IsActive { get; set; }
     public string? Username { get; set; }
+    public string? RoleName { get; set; }  
 }
