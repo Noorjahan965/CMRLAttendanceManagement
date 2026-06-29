@@ -33,6 +33,8 @@ export type Employee = {
     address: string | null;
     joiningDate: string | null;
     isActive: boolean;
+    username: string;
+    roleName: string;
 };
 
 export type EmployeeCreatePayload = {
@@ -68,25 +70,27 @@ export type EmployeeUpdatePayload = {
 };
 
 export const getFormOptions = async (): Promise<EmployeeFormOptions> => {
-    const response = await apiClient.get(`/employee/form-options`); 
+    const response = await apiClient.get(`/employee/form-options`);
     return response.data;
 };
 
-export const getEmployees = async (): Promise<Employee[]> => {
-    const response = await apiClient.get(`/employee`); 
+export const getEmployees = async (username: string): Promise<Employee[]> => {
+    const response = await apiClient.get(`/employee`, {
+        params: { username }
+    });
     return response.data;
 };
 
-export const searchEmployees = async (keyword: string): Promise<Employee[]> => {
-    const response = await apiClient.get(`/employee/search`, { 
-        params: { keyword },
+export const searchEmployees = async (keyword: string, username: string): Promise<Employee[]> => {
+    const response = await apiClient.get(`/employee/search`, {
+        params: { keyword, username }
     });
     return response.data;
 };
 
 export const createEmployee = async (payload: EmployeeCreatePayload) => {
     console.log("CREATE PAYLOAD:", JSON.stringify(payload));
-    const response = await apiClient.post(`/employee`, payload); 
+    const response = await apiClient.post(`/employee`, payload);
     return response.data;
 };
 
@@ -94,7 +98,7 @@ export const updateEmployee = async (
     employeeId: number,
     payload: EmployeeUpdatePayload
 ) => {
-    const response = await apiClient.put( 
+    const response = await apiClient.put(
         `/employee/${employeeId}`,
         payload
     );
