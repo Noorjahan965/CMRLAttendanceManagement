@@ -9,6 +9,10 @@ import EmployeesScreen from "../screens/HR/EmployeesScreen";
 import LowAttendanceScreen from "../screens/HR/LowAttendanceScreen";
 import AttendanceDetailScreen from "../screens/HR/AttendanceDetailScreen"; 
 import ForgotPasswordScreen from "@/screens/ForgotPasswordScreen";
+import OtpVerificationScreen from "@/screens/OtpVerificationScreen";
+import ResetPasswordScreen from "@/screens/ResetPasswordScreen";
+
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -23,6 +27,16 @@ export default function AppNavigator() {
                     component={ForgotPasswordScreen}
                     options={{ headerShown: false }}
                     />
+                <Stack.Screen
+                    name="OtpVerification"
+                    component={OtpVerificationScreen}
+                    options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="ResetPassword"
+                        component={ResetPasswordScreen}
+                        options={{ headerShown: false }}
+                        />
                 <Stack.Screen name="Home"
                     component={HomeScreen}
                     options={{ headerShown: false }} />
@@ -41,6 +55,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="AttendanceDetail"
                     component={AttendanceDetailScreen}
                     options={{ headerShown: true, title: "Attendance Detail" }} />
+
             </Stack.Navigator>
         </NavigationContainer>
     );

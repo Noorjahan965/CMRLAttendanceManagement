@@ -12,21 +12,58 @@ import {
   Keyboard,
 } from "react-native";
 
+import { forgotPassword } from "../services/authService";
+
 export default function ForgotPasswordScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
+  const [loading , setLoading ] = useState(false);
 
-  const handleResetLink = () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address.");
-      return;
-    }
+  const handleResetLink = async () => {
+	if (!email.trim()) {
+		Alert.alert("Error", "Please enter your email address.");
+		return;
+	}
 
-    // Call your Forgot Password API here
-    Alert.alert(
-      "Success",
-      "If this email exists, a password reset link has been sent."
-    );
-  };
+	// Prevent multiple taps
+	if (loading) return;
+
+	setLoading(true);
+
+	try {
+	const data = await forgotPassword(email.trim());
+
+	Alert.alert(
+		"Success",
+		data.message,
+		[
+			{
+				text: "OK",
+				onPress: () => {
+					navigation.navigate("OtpVerification", {
+						email: email.trim(),
+					});
+				},
+			},
+		],
+		{ cancelable: false }
+	);
+} catch (error: any) {
+	console.log("FORGOT PASSWORD ERROR:", error);
+
+	if (error?.response?.status === 404) {
+		Alert.alert("Error", error.response.data.message);
+	} else {
+		Alert.alert(
+			"Error",
+			error?.response?.data?.message ||
+			error?.message ||
+			"Something went wrong."
+		);
+	}
+} finally {
+	setLoading(false);
+}
+};
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -65,13 +102,17 @@ export default function ForgotPasswordScreen({ navigation }: any) {
 
         {/* Button */}
         <TouchableOpacity
-          style={styles.button}
-          onPress={handleResetLink}
-        >
-          <Text style={styles.buttonText}>
-            Send OTP
-          </Text>
-        </TouchableOpacity>
+	style={[
+		styles.button,
+		loading && { opacity: 0.6 },
+	]}
+	onPress={handleResetLink}
+	disabled={loading}
+>
+	<Text style={styles.buttonText}>
+		{loading ? "Sending..." : "Send OTP"}
+	</Text>
+</TouchableOpacity>
 
         {/* Back */}
         <TouchableOpacity
