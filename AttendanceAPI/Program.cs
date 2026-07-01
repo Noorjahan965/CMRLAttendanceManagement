@@ -13,14 +13,14 @@ using MySqlConnector;
 using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls("http://0.0.0.0:5214");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5214";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.AddControllers();
+var keysPath = Environment.GetEnvironmentVariable("DATAPROTECTION_KEYS_PATH")
+    ?? Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(
-        new DirectoryInfo(
-            Path.Combine(
-                builder.Environment.ContentRootPath,
-                "DataProtectionKeys")))
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
     .SetApplicationName("AttendanceAPI");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
