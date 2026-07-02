@@ -1,1 +1,2 @@
-export const BASE_URL = "http://192.168.195.21:5214/api";
+export const BASE_URL = "https://cmrlattendancemanagement.onrender.com/api";
+

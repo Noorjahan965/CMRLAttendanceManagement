@@ -97,3 +97,26 @@ export const updateAttendanceStatus = async (
     });
     return response.data;
 };
+
+export const getTeamAttendanceStatus = async (hrUsername: string) => {
+    const response = await apiClient.get(`/Attendance/hr/team-attendance-status`, {
+        params: { hrUsername }
+    });
+    return response.data;
+};
+
+export const hrSignInEmployee = async (hrUsername: string, employeeUsername: string) => {
+    const response = await apiClient.post(`/Attendance/hr/sign-in-employee`, {
+        hrUsername,
+        employeeUsername,
+    });
+    return response.data;
+};
+
+export const hrSignOutEmployee = async (hrUsername: string, employeeUsername: string) => {
+    const response = await apiClient.post(`/Attendance/hr/sign-out-employee`, {
+        hrUsername,
+        employeeUsername,
+    });
+    return response.data;
+};

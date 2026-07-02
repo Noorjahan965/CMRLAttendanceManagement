@@ -33,4 +33,10 @@ public class UserLogin
 
     [Column("refresh_token_expiry")]
     public DateTime? RefreshTokenExpiry { get; set; }
+
+    [Column("otp_code")]
+    public string? OtpCode { get; set; }
+
+    [Column("otp_expiry")]
+    public DateTime? OtpExpiry { get; set; }
 }
